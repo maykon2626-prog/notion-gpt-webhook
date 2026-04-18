@@ -8,35 +8,58 @@ app.use(express.json())
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-async function buscarPagina(pageId) {
-    try {
-        const page = await notion.pages.retrieve({ page_id: pageId })
-        return page
-    } catch (err) {
-        console.error('Erro ao buscar pagina:', err.message)
-        return null
-    }
-}
+async function extrairTexto(pageId, profundidade = 0) {
+    if (profundidade > 2) return ''
 
-async function extrairTexto(page) {
     try {
-        const blocks = await notion.blocks.children.list({ block_id: page.id })
-        const textos = blocks.results.map(b => {
+        const blocks = await notion.blocks.children.list({ block_id: pageId })
+        const comTexto = [
+            'paragraph', 'heading_1', 'heading_2', 'heading_3',
+            'bulleted_list_item', 'numbered_list_item',
+            'quote', 'callout', 'toggle', 'to_do'
+        ]
+
+        let textos = []
+
+        for (const b of blocks.results) {
             const tipo = b.type
-            const comTexto = [
-                'paragraph', 'heading_1', 'heading_2', 'heading_3',
-                'bulleted_list_item', 'numbered_list_item',
-                'quote', 'callout', 'toggle', 'to_do'
-            ]
+
             if (comTexto.includes(tipo)) {
-                return b[tipo]?.rich_text?.map(t => t.plain_text).join('') || ''
+                const texto = b[tipo]?.rich_text?.map(t => t.plain_text).join('') || ''
+                if (texto) textos.push(texto)
             }
-            if (tipo === 'code') {
-                return b.code?.rich_text?.map(t => t.plain_text).join('') || ''
+
+            if (tipo === 'child_page') {
+                console.log('Entrando na subpagina:', b.child_page.title)
+                const sub = await extrairTexto(b.id, profundidade + 1)
+                if (sub) textos.push('\n## ' + b.child_page.title + '\n' + sub)
             }
-            return ''
-        })
-        return textos.filter(Boolean).join('\n')
+
+            if (tipo === 'child_database') {
+                console.log('Lendo database:', b.child_database.title)
+                try {
+                    const db = await notion.databases.query({ database_id: b.id })
+                    for (const item of db.results) {
+                        const titulo = item.properties?.Name?.title?.[0]?.plain_text ||
+                                      item.properties?.titulo?.title?.[0]?.plain_text || ''
+                        const conteudoItem = await extrairTexto(item.id, profundidade + 1)
+                        if (titulo || conteudoItem) {
+                            textos.push('\n### ' + titulo + '\n' + conteudoItem)
+                        }
+                    }
+                } catch (dbErr) {
+                    console.error('Erro ao ler database:', dbErr.message)
+                }
+            }
+
+            if (b.has_children && tipo !== 'child_page' && tipo !== 'child_database') {
+                const filhos = await extrairTexto(b.id, profundidade + 1)
+                if (filhos) textos.push(filhos)
+            }
+        }
+
+        return textos.join('\n')
+
     } catch (err) {
         console.error('Erro ao extrair texto:', err.message)
         return ''
@@ -85,7 +108,7 @@ app.get('/search', async (req, res) => {
             return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
         }
         const page = result.results[0]
-        const contexto = await extrairTexto(page)
+        const contexto = await extrairTexto(page.id)
         return res.json({
             pagina: page.id,
             titulo: page.properties?.title?.title?.[0]?.plain_text || 'sem titulo',
@@ -103,11 +126,7 @@ app.post('/webhook', async (req, res) => {
         if (!pageId) {
             return res.status(400).json({ erro: 'Envie pageId no body' })
         }
-        const page = await buscarPagina(pageId)
-        if (!page) {
-            return res.status(404).json({ erro: 'Pagina nao encontrada' })
-        }
-        const conteudo = await extrairTexto(page)
+        const conteudo = await extrairTexto(pageId)
         if (!conteudo) {
             return res.status(404).json({ erro: 'Pagina sem conteudo' })
         }
@@ -147,7 +166,7 @@ app.post('/perguntar', async (req, res) => {
                 if (result.results.length > 0) {
                     const page = result.results[0]
                     console.log('5. Extraindo texto da pagina:', page.id)
-                    contexto = await extrairTexto(page)
+                    contexto = await extrairTexto(page.id)
                     console.log('6. Texto extraido, tamanho:', contexto.length)
                 }
             } catch (notionErr) {
