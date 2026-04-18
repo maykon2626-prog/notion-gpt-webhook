@@ -1,3 +1,4 @@
+cat > server.js << 'EOF'
 const express = require('express')
 const { Client } = require('@notionhq/client')
 
@@ -5,10 +6,6 @@ const app = express()
 app.use(express.json())
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
-
-// ─────────────────────────────────────────
-// FUNÇÕES DE BUSCA NO NOTION
-// ─────────────────────────────────────────
 
 async function buscarPagina(pageId) {
     try {
@@ -46,33 +43,44 @@ async function extrairTexto(page) {
     }
 }
 
-// ─────────────────────────────────────────
-// ROTA PRINCIPAL — recebe perguntas
-// ─────────────────────────────────────────
-
 app.post('/webhook', async (req, res) => {
     try {
         const { pergunta, pageId, databaseId } = req.body
-
         console.log('Pergunta recebida:', pergunta)
-
         let conteudo = ''
-
         if (pageId) {
-            // Busca uma página específica
             const page = await buscarPagina(pageId)
-            if (page) {
-                conteudo = await extrairTexto(page)
-            }
+            if (page) conteudo = await extrairTexto(page)
         } else if (databaseId) {
-            // Busca um database inteiro
             const itens = await buscarDatabase(databaseId)
             conteudo = JSON.stringify(itens, null, 2)
         } else {
-            return res.status(400).json({ 
-                erro: 'Envie pageId ou databaseId no body' 
-            })
+            return res.status(400).json({ erro: 'Envie pageId ou databaseId no body' })
         }
-
         if (!conteudo) {
-            return res.st
+            return res.status(404).json({ erro: 'Página não encontrada ou sem conteúdo' })
+        }
+        return res.json({ conteudo })
+    } catch (err) {
+        console.error('Erro no webhook:', err.message)
+        return res.status(500).json({ erro: err.message })
+    }
+})
+
+app.get('/', (req, res) => {
+    res.json({ status: 'Webhook rodando ✅' })
+})
+
+process.on('uncaughtException', (err) => {
+    console.error('Erro não tratado:', err.message)
+})
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Promise rejeitada:', reason)
+})
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => {
+    console.log('✅ Webhook rodando na porta ' + PORT)
+})
+EOF
