@@ -72,6 +72,44 @@ app.post('/webhook', async (req, res) => {
 })
 
 app.get('/', (req, res) => {
+    app.post('/search', async (req, res) => {
+    try {
+        const { query } = req.body
+
+        if (!query) {
+            return res.status(400).json({ erro: 'Envie um campo query' })
+        }
+
+        console.log('Buscando no Notion:', query)
+
+        const result = await notion.search({
+            query: query,
+            filter: { property: 'object', value: 'page' }
+        })
+
+        if (result.results.length === 0) {
+            return res.status(404).json({ erro: 'Nenhuma página encontrada' })
+        }
+
+        const page = result.results[0]
+
+        const blocks = await notion.blocks.children.list({ block_id: page.id })
+        const conteudo = blocks.results
+            .map(b => b[b.type]?.rich_text?.map(t => t.plain_text).join('') || '')
+            .filter(Boolean)
+            .join('\n')
+
+        return res.json({
+            pagina: page.id,
+            titulo: page.properties?.title?.title?.[0]?.plain_text || 'sem título',
+            conteudo: conteudo
+        })
+
+    } catch (err) {
+        console.error('Erro na busca:', err.message)
+        return res.status(500).json({ erro: err.message })
+    }
+})
     res.json({ status: 'Webhook rodando ✅' })
 })
 
