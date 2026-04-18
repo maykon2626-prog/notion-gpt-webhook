@@ -19,16 +19,36 @@ async function buscarPagina(pageId) {
 async function extrairTexto(page) {
     try {
         const blocks = await notion.blocks.children.list({ block_id: page.id })
-        return blocks.results
-            .map(b => b[b.type]?.rich_text?.map(t => t.plain_text).join('') || '')
-            .filter(Boolean)
-            .join('\n')
+        
+        const textos = blocks.results.map(b => {
+            const tipo = b.type
+            
+            // Tipos que têm rich_text
+            const comTexto = [
+                'paragraph', 'heading_1', 'heading_2', 'heading_3',
+                'bulleted_list_item', 'numbered_list_item',
+                'quote', 'callout', 'toggle', 'to_do'
+            ]
+            
+            if (comTexto.includes(tipo)) {
+                return b[tipo]?.rich_text?.map(t => t.plain_text).join('') || ''
+            }
+            
+            // Tipo code
+            if (tipo === 'code') {
+                return b.code?.rich_text?.map(t => t.plain_text).join('') || ''
+            }
+            
+            return ''
+        })
+        
+        return textos.filter(Boolean).join('\n')
+
     } catch (err) {
         console.error('Erro ao extrair texto:', err.message)
         return ''
     }
 }
-
 app.get('/search', async (req, res) => {
     try {
         const query = req.query.query
