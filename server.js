@@ -1,4 +1,3 @@
-cat > server.js << 'EOF'
 const express = require('express')
 const { Client } = require('@notionhq/client')
 
@@ -47,7 +46,9 @@ app.post('/webhook', async (req, res) => {
     try {
         const { pergunta, pageId, databaseId } = req.body
         console.log('Pergunta recebida:', pergunta)
+
         let conteudo = ''
+
         if (pageId) {
             const page = await buscarPagina(pageId)
             if (page) conteudo = await extrairTexto(page)
@@ -57,10 +58,13 @@ app.post('/webhook', async (req, res) => {
         } else {
             return res.status(400).json({ erro: 'Envie pageId ou databaseId no body' })
         }
+
         if (!conteudo) {
             return res.status(404).json({ erro: 'Página não encontrada ou sem conteúdo' })
         }
+
         return res.json({ conteudo })
+
     } catch (err) {
         console.error('Erro no webhook:', err.message)
         return res.status(500).json({ erro: err.message })
@@ -83,4 +87,3 @@ const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
     console.log('✅ Webhook rodando na porta ' + PORT)
 })
-EOF
