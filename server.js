@@ -120,11 +120,14 @@ app.post('/webhook', async (req, res) => {
 
 app.post('/perguntar', async (req, res) => {
     res.setTimeout(28000, () => {
+        console.log('TIMEOUT na requisicao')
         return res.status(504).json({ erro: 'Timeout na requisicao' })
     })
 
     try {
         const { pergunta, query } = req.body
+        console.log('1. Pergunta recebida:', pergunta)
+        console.log('2. Query:', query)
 
         if (!pergunta) {
             return res.status(400).json({ erro: 'Envie uma pergunta' })
@@ -133,21 +136,33 @@ app.post('/perguntar', async (req, res) => {
         let contexto = 'Sem contexto disponivel.'
 
         if (query) {
-            const result = await notion.search({
-                query: query,
-                filter: { property: 'object', value: 'page' }
-            })
-            if (result.results.length > 0) {
-                const page = result.results[0]
-                contexto = await extrairTexto(page)
+            console.log('3. Buscando no Notion...')
+            try {
+                const result = await notion.search({
+                    query: query,
+                    filter: { property: 'object', value: 'page' }
+                })
+                console.log('4. Notion retornou:', result.results.length, 'paginas')
+
+                if (result.results.length > 0) {
+                    const page = result.results[0]
+                    console.log('5. Extraindo texto da pagina:', page.id)
+                    contexto = await extrairTexto(page)
+                    console.log('6. Texto extraido, tamanho:', contexto.length)
+                }
+            } catch (notionErr) {
+                console.error('ERRO no Notion:', notionErr.message)
             }
         }
 
+        console.log('7. Chamando Claude...')
         const resposta = await perguntarClaude(contexto, pergunta)
+        console.log('8. Claude respondeu!')
+
         return res.json({ resposta })
 
     } catch (err) {
-        console.error('Erro:', err.message)
+        console.error('ERRO GERAL:', err.message)
         return res.status(500).json({ erro: err.message })
     }
 })
