@@ -1,6 +1,4 @@
-node -e "
-const fs = require('fs');
-fs.writeFileSync('server.js', \`const express = require('express')
+const express = require('express')
 const { Client } = require('@notionhq/client')
 
 const app = express()
@@ -24,7 +22,7 @@ async function extrairTexto(page) {
         return blocks.results
             .map(b => b[b.type]?.rich_text?.map(t => t.plain_text).join('') || '')
             .filter(Boolean)
-            .join('\\n')
+            .join('\n')
     } catch (err) {
         console.error('Erro ao extrair texto:', err.message)
         return ''
@@ -34,24 +32,36 @@ async function extrairTexto(page) {
 app.get('/search', async (req, res) => {
     try {
         const query = req.query.query
-        if (!query) return res.status(400).json({ erro: 'Envie um campo query' })
+
+        if (!query) {
+            return res.status(400).json({ erro: 'Envie um campo query' })
+        }
+
         console.log('Buscando no Notion:', query)
+
         const result = await notion.search({
             query: query,
             filter: { property: 'object', value: 'page' }
         })
-        if (result.results.length === 0) return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
+
+        if (result.results.length === 0) {
+            return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
+        }
+
         const page = result.results[0]
+
         const blocks = await notion.blocks.children.list({ block_id: page.id })
         const conteudo = blocks.results
             .map(b => b[b.type]?.rich_text?.map(t => t.plain_text).join('') || '')
             .filter(Boolean)
-            .join('\\n')
+            .join('\n')
+
         return res.json({
             pagina: page.id,
             titulo: page.properties?.title?.title?.[0]?.plain_text || 'sem titulo',
             conteudo: conteudo
         })
+
     } catch (err) {
         console.error('Erro na busca:', err.message)
         return res.status(500).json({ erro: err.message })
@@ -61,12 +71,25 @@ app.get('/search', async (req, res) => {
 app.post('/webhook', async (req, res) => {
     try {
         const { pageId } = req.body
-        if (!pageId) return res.status(400).json({ erro: 'Envie pageId no body' })
+
+        if (!pageId) {
+            return res.status(400).json({ erro: 'Envie pageId no body' })
+        }
+
         const page = await buscarPagina(pageId)
-        if (!page) return res.status(404).json({ erro: 'Pagina nao encontrada' })
+
+        if (!page) {
+            return res.status(404).json({ erro: 'Pagina nao encontrada' })
+        }
+
         const conteudo = await extrairTexto(page)
-        if (!conteudo) return res.status(404).json({ erro: 'Pagina sem conteudo' })
+
+        if (!conteudo) {
+            return res.status(404).json({ erro: 'Pagina sem conteudo' })
+        }
+
         return res.json({ conteudo })
+
     } catch (err) {
         console.error('Erro no webhook:', err.message)
         return res.status(500).json({ erro: err.message })
@@ -88,6 +111,4 @@ process.on('unhandledRejection', (reason) => {
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
     console.log('Webhook rodando na porta ' + PORT)
-})\`);
-console.log('server.js criado com sucesso!');
-"
+})
