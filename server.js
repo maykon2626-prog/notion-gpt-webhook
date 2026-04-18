@@ -45,19 +45,24 @@ async function extrairTexto(page) {
 
 async function perguntarClaude(contexto, pergunta) {
     try {
-        const response = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 1024,
-            system: `Você é Bellinha, assistente virtual da Bella Casa & Okada.
+        const response = await Promise.race([
+            anthropic.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 512,
+                system: `Você é Bellinha, assistente virtual da Bella Casa & Okada.
 Responda sempre no feminino e use primeira pessoa do plural ao falar da empresa.
 Responda apenas com base no contexto fornecido.
 Se não souber, diga: "Não tenho esse dado disponível. Recomendo consultar o gerente comercial."
 Contexto disponível:
 ${contexto}`,
-            messages: [
-                { role: 'user', content: pergunta }
-            ]
-        })
+                messages: [
+                    { role: 'user', content: pergunta }
+                ]
+            }),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 25000)
+            )
+        ])
         return response.content[0].text
     } catch (err) {
         console.error('Erro no Claude:', err.message)
@@ -74,3 +79,92 @@ app.get('/search', async (req, res) => {
         console.log('Buscando no Notion:', query)
         const result = await notion.search({
             query: query,
+            filter: { property: 'object', value: 'page' }
+        })
+        if (result.results.length === 0) {
+            return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
+        }
+        const page = result.results[0]
+        const contexto = await extrairTexto(page)
+        return res.json({
+            pagina: page.id,
+            titulo: page.properties?.title?.title?.[0]?.plain_text || 'sem titulo',
+            conteudo: contexto
+        })
+    } catch (err) {
+        console.error('Erro na busca:', err.message)
+        return res.status(500).json({ erro: err.message })
+    }
+})
+
+app.post('/webhook', async (req, res) => {
+    try {
+        const { pageId } = req.body
+        if (!pageId) {
+            return res.status(400).json({ erro: 'Envie pageId no body' })
+        }
+        const page = await buscarPagina(pageId)
+        if (!page) {
+            return res.status(404).json({ erro: 'Pagina nao encontrada' })
+        }
+        const conteudo = await extrairTexto(page)
+        if (!conteudo) {
+            return res.status(404).json({ erro: 'Pagina sem conteudo' })
+        }
+        return res.json({ conteudo })
+    } catch (err) {
+        console.error('Erro no webhook:', err.message)
+        return res.status(500).json({ erro: err.message })
+    }
+})
+
+app.post('/perguntar', async (req, res) => {
+    res.setTimeout(28000, () => {
+        return res.status(504).json({ erro: 'Timeout na requisicao' })
+    })
+
+    try {
+        const { pergunta, query } = req.body
+
+        if (!pergunta) {
+            return res.status(400).json({ erro: 'Envie uma pergunta' })
+        }
+
+        let contexto = 'Sem contexto disponivel.'
+
+        if (query) {
+            const result = await notion.search({
+                query: query,
+                filter: { property: 'object', value: 'page' }
+            })
+            if (result.results.length > 0) {
+                const page = result.results[0]
+                contexto = await extrairTexto(page)
+            }
+        }
+
+        const resposta = await perguntarClaude(contexto, pergunta)
+        return res.json({ resposta })
+
+    } catch (err) {
+        console.error('Erro:', err.message)
+        return res.status(500).json({ erro: err.message })
+    }
+})
+
+app.get('/', (req, res) => {
+    res.json({ status: 'Webhook rodando' })
+})
+
+process.on('uncaughtException', (err) => {
+    console.error('Erro nao tratado:', err.message)
+})
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Promise rejeitada:', reason)
+})
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => {
+    console.log('Webhook rodando na porta ' + PORT)
+})
