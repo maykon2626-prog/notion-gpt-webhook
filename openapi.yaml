@@ -4,7 +4,7 @@ info:
   description: API para consultar páginas, pesquisar conteúdo e acessar databases do Notion.
   version: 1.0.0
 servers:
-  - url: https://SEU_DOMINIO_OU_IP:3000
+  - url: https://notion-gpt-webhook-production.up.railway.app/
     description: Servidor de produção
 paths:
   /search:
