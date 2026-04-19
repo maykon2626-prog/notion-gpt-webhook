@@ -68,6 +68,48 @@ async function extrairTexto(pageId, profundidade = 0) {
     }
 }
 
+async function extrairKeywords(texto) {
+    try {
+        const response = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 50,
+            system: 'Extraia 2-4 palavras-chave em português para buscar no Notion. Responda APENAS as palavras-chave separadas por espaço, sem pontuação.',
+            messages: [{ role: 'user', content: texto }]
+        })
+        return response.content[0].text.trim()
+    } catch (err) {
+        console.error('Erro ao extrair keywords:', err.message)
+        return texto
+    }
+}
+
+async function buscarNotion(query, paginas = 3) {
+    try {
+        const result = await notion.search({
+            query: query,
+            filter: { property: 'object', value: 'page' },
+            page_size: paginas
+        })
+
+        console.log('Notion retornou:', result.results.length, 'paginas')
+
+        if (result.results.length === 0) return ''
+
+        const textos = []
+        for (const page of result.results) {
+            console.log('Lendo pagina:', page.id)
+            const conteudo = await extrairTexto(page.id)
+            if (conteudo) textos.push(conteudo)
+        }
+
+        return textos.join('\n\n---\n\n')
+
+    } catch (err) {
+        console.error('Erro ao buscar no Notion:', err.message)
+        return ''
+    }
+}
+
 async function perguntarClaude(contexto, pergunta) {
     try {
         const response = await Promise.race([
@@ -76,8 +118,27 @@ async function perguntarClaude(contexto, pergunta) {
                 max_tokens: 512,
                 system: `Você é Bellinha, assistente virtual da Bella Casa & Okada.
 Responda sempre no feminino e use primeira pessoa do plural ao falar da empresa.
+Seja profissional, próxima e direta. Use emojis com moderação.
 Responda apenas com base no contexto fornecido.
 Se não souber, diga: "Não tenho esse dado disponível. Recomendo consultar o gerente comercial."
+
+REGRAS:
+- Sempre confirme o empreendimento antes de falar de pagamento
+- Inclua sempre o aviso do Gerlotes ao informar valores
+- Nunca misture dados de empreendimentos diferentes
+- Respostas curtas e objetivas
+
+EXEMPLOS DE RESPOSTAS IDEAIS:
+
+Corretor: "Aceita FGTS?"
+Bellinha: "Sim! Aceitamos FGTS para entrada ou amortização. O cliente precisa verificar o saldo antes de confirmar. Sobre qual empreendimento você está perguntando? 😊"
+
+Corretor: "Qual a entrada mínima?"
+Bellinha: "Antes de responder, qual empreendimento você está consultando? As condições variam por projeto. 😊"
+
+Corretor: "Tem desconto à vista?"
+Bellinha: "Sim! Temos desconto para pagamento à vista. Me diz qual empreendimento que te passo os detalhes. 😊 ⚠️ Valores sujeitos a alteração. Confirmar sempre no Gerlotes."
+
 Contexto disponível:
 ${contexto}`,
                 messages: [
@@ -114,18 +175,10 @@ app.get('/search', async (req, res) => {
     try {
         const query = req.query.query
         if (!query) return res.status(400).json({ erro: 'Envie um campo query' })
-        const result = await notion.search({
-            query: query,
-            filter: { property: 'object', value: 'page' }
-        })
-        if (result.results.length === 0) return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
-        const page = result.results[0]
-        const contexto = await extrairTexto(page.id)
-        return res.json({
-            pagina: page.id,
-            titulo: page.properties?.title?.title?.[0]?.plain_text || 'sem titulo',
-            conteudo: contexto
-        })
+        console.log('Buscando no Notion:', query)
+        const conteudo = await buscarNotion(query)
+        if (!conteudo) return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
+        return res.json({ conteudo })
     } catch (err) {
         console.error('Erro na busca:', err.message)
         return res.status(500).json({ erro: err.message })
@@ -154,34 +207,20 @@ app.post('/perguntar', async (req, res) => {
     try {
         const { pergunta, query } = req.body
         console.log('1. Pergunta recebida:', pergunta)
-        console.log('2. Query:', query)
 
         if (!pergunta) return res.status(400).json({ erro: 'Envie uma pergunta' })
 
-        let contexto = 'Sem contexto disponivel.'
+        const busca = query || pergunta
+        console.log('2. Extraindo keywords...')
+        const keywords = await extrairKeywords(busca)
+        console.log('3. Keywords:', keywords)
 
-        if (query) {
-            console.log('3. Buscando no Notion...')
-            try {
-                const result = await notion.search({
-                    query: query,
-                    filter: { property: 'object', value: 'page' }
-                })
-                console.log('4. Notion retornou:', result.results.length, 'paginas')
-                if (result.results.length > 0) {
-                    const page = result.results[0]
-                    console.log('5. Extraindo texto da pagina:', page.id)
-                    contexto = await extrairTexto(page.id)
-                    console.log('6. Texto extraido, tamanho:', contexto.length)
-                }
-            } catch (notionErr) {
-                console.error('ERRO no Notion:', notionErr.message)
-            }
-        }
+        const contexto = await buscarNotion(keywords)
+        console.log('4. Contexto tamanho:', contexto.length)
 
-        console.log('7. Chamando Claude...')
-        const resposta = await perguntarClaude(contexto, pergunta)
-        console.log('8. Claude respondeu!')
+        console.log('5. Chamando Claude...')
+        const resposta = await perguntarClaude(contexto || 'Sem contexto disponivel.', pergunta)
+        console.log('6. Claude respondeu!')
 
         return res.json({ resposta })
 
@@ -199,26 +238,23 @@ app.post('/whatsapp', async (req, res) => {
                       msg?.data?.message?.extendedTextMessage?.text
 
         const numero = msg?.data?.key?.remoteJid
+        const fromMe = msg?.data?.key?.fromMe
 
-        if (!texto || !numero) return res.sendStatus(200)
+        if (!texto || !numero || fromMe) return res.sendStatus(200)
 
         console.log('WhatsApp - De:', numero)
         console.log('WhatsApp - Texto:', texto)
 
-        let contexto = 'Sem contexto disponivel.'
-        try {
-            const result = await notion.search({
-                query: texto,
-                filter: { property: 'object', value: 'page' }
-            })
-            if (result.results.length > 0) {
-                contexto = await extrairTexto(result.results[0].id)
-            }
-        } catch (notionErr) {
-            console.error('ERRO Notion no WhatsApp:', notionErr.message)
-        }
+        // Extrai keywords da pergunta
+        const keywords = await extrairKeywords(texto)
+        console.log('Keywords:', keywords)
 
-        const resposta = await perguntarClaude(contexto, texto)
+        // Busca nas 3 páginas mais relevantes
+        const contexto = await buscarNotion(keywords, 3)
+        console.log('Contexto tamanho:', contexto.length)
+
+        // Responde com Claude
+        const resposta = await perguntarClaude(contexto || 'Sem contexto disponivel.', texto)
         await enviarWhatsApp(numero, resposta)
 
         return res.sendStatus(200)
