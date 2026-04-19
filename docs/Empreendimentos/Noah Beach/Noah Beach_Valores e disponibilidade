@@ -1,137 +1,216 @@
-| **Quadra** | **Lote** | **Dimensão** | **Valor** | **Status** |
-| --- | --- | --- | --- | --- |
-| 1 | 2 | 303,75 m² | R$ 563.100,00 | Disponível |
-| 1 | 4 | 270,00 m² | R$ 499.600,00 | Reservado |
-| 1 | 6 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 1 | 8 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 1 | 10 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 1 | 12 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 1 | 14 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 1 | 16 | 260,85 m² | R$ 482.300,00 | Disponível |
-| 2 | 6 | 225,00 m² | R$ 416.400,00 | Reservado |
-| 2 | 8 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 10 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 12 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 14 | 264,63 m² | R$ 536.700,00 | Disponível |
-| 2 | 16 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 18 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 20 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 22 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 24 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 2 | 26 | 270,00 m² | R$ 499.600,00 | Reservado |
-| 2 | 28 | 293,53 m² | R$ 596.100,00 | Disponível |
-| 3 | 2 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 3 | 4 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 3 | 7 | 225,00 m² | R$ 436.600,00 | Reservado |
-| 3 | 12 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 3 | 14 | 264,73 m² | R$ 536.700,00 | Disponível |
-| 3 | 16 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 3 | 18 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 3 | 20 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 3 | 23 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 3 | 27 | 293,42 m² | R$ 616.200,00 | Disponível |
-| 4 | 5 | 201,86 m² | R$ 355.400,00 | Disponível |
-| 4 | 8 | 203,21 m² | R$ 357.700,00 | Disponível |
-| 4 | 10 | 204,11 m² | R$ 359.300,00 | Disponível |
-| 4 | 13 | 205,45 m² | R$ 361.700,00 | Disponível |
-| 4 | 15 | 206,35 m² | R$ 363.200,00 | Disponível |
-| 4 | 18 | 207,70 m² | R$ 365.700,00 | Disponível |
-| 4 | 20 | 208,60 m² | R$ 367.200,00 | Disponível |
-| 4 | 22 | 209,49 m² | R$ 368.800,00 | Disponível |
-| 4 | 24 | 210,39 m² | R$ 370.400,00 | Disponível |
-| 4 | 26 | 211,29 m² | R$ 372.000,00 | Disponível |
-| 4 | 28 | 236,74 m² | R$ 417.200,00 | Disponível |
-| 5 | 2 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 4 | 225,00 m² | R$ 417.500,00 | Reservado |
-| 5 | 6 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 8 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 13 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 15 | 342,36 m² | R$ 694.800,00 | Disponível |
-| 5 | 17 | 247,50 m² | R$ 459.200,00 | Disponível |
-| 5 | 19 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 21 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 23 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 25 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 27 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 29 | 225,00 m² | R$ 417.500,00 | Disponível |
-| 5 | 31 | 287,13 m² | R$ 583.200,00 | Disponível |
-| 6 | 9 | 385,16 m² | R$ 814.600,00 | Disponível |
-| 6 | 11 | 225,00 m² | R$ 437.100,00 | Disponível |
-| 6 | 13 | 225,00 m² | R$ 437.100,00 | Disponível |
-| 6 | 15 | 225,00 m² | R$ 437.100,00 | Disponível |
-| 6 | 17 | 225,00 m² | R$ 437.100,00 | Disponível |
-| 6 | 19 | 225,00 m² | R$ 437.100,00 | Disponível |
-| 6 | 21 | 299,13 m² | R$ 607.800,00 | Reservado |
-| 8 | 5 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 8 | 7 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 8 | 9 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 8 | 12 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 8 | 14 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 8 | 16 | 238,04 m² | R$ 440.500,00 | Disponível |
-| 8 | 18 | 237,82 m² | R$ 440.100,00 | Disponível |
-| 8 | 22 | 379,33 m² | R$ 701.900,00 | Disponível |
-| 8 | 25 | 313,17 m² | R$ 579.500,00 | Disponível |
-| 8 | 27 | 277,25 m² | R$ 513.000,00 | Disponível |
-| 8 | 29 | 251,42 m² | R$ 465.300,00 | Disponível |
-| 8 | 31 | 235,23 m² | R$ 435.300,00 | Disponível |
-| 8 | 33 | 227,41 m² | R$ 420.800,00 | Disponível |
-| 8 | 35 | 227,42 m² | R$ 420.800,00 | Disponível |
-| 8 | 37 | 222,86 m² | R$ 412.400,00 | Disponível |
-| 8 | 39 | 225,17 m² | R$ 416.700,00 | Disponível |
-| 8 | 41 | 224,37 m² | R$ 415.200,00 | Disponível |
-| 8 | 43 | 224,53 m² | R$ 415.500,00 | Disponível |
-| 8 | 45 | 224,99 m² | R$ 416.400,00 | Disponível |
-| 8 | 47 | 225,17 m² | R$ 416.700,00 | Disponível |
-| 8 | 49 | 225,23 m² | R$ 416.800,00 | Disponível |
-| 8 | 51 | 225,39 m² | R$ 417.100,00 | Disponível |
-| 8 | 53 | 225,70 m² | R$ 417.700,00 | Disponível |
-| 8 | 55 | 263,60 m² | R$ 487.800,00 | Disponível |
-| 8 | 57 | 377,46 m² | R$ 698.500,00 | Disponível |
-| 8 | 59 | 230,00 m² | R$ 425.600,00 | Disponível |
-| 8 | 61 | 239,18 m² | R$ 442.600,00 | Disponível |
-| 9 | 1 | 264,63 m² | R$ 536.300,00 | Disponível |
-| 9 | 3 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 9 | 5 | 225,00 m² | R$ 436.600,00 | Reservado |
-| 9 | 14 | 225,00 m² | R$ 416.400,00 | Reservado |
-| 9 | 16 | 225,00 m² | R$ 416.400,00 | Disponível |
-| 9 | 18 | 247,50 m² | R$ 458.000,00 | Disponível |
-| 9 | 20 | 297,65 m² | R$ 603.900,00 | Disponível |
-| 10 | 2 | 327,27 m² | R$ 663.000,00 | Disponível |
-| 10 | 6 | 358,78 m² | R$ 758.800,00 | Reservado |
-| 10 | 12 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 10 | 14 | 247,50 m² | R$ 480.300,00 | Reservado |
-| 11 | 2 | 317,06 m² | R$ 642.300,00 | Disponível |
-| 11 | 4 | 317,16 m² | R$ 642.500,00 | Disponível |
-| 11 | 11 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 11 | 17 | 225,49 m² | R$ 437.600,00 | Disponível |
-| 11 | 21 | 249,26 m² | R$ 483.700,00 | Disponível |
-| 12 | 2 | 254,40 m² | R$ 470.800,00 | Reservado |
-| 12 | 4 | 243,15 m² | R$ 450.000,00 | Reservado |
-| 12 | 8 | 243,15 m² | R$ 450.000,00 | Disponível |
-| 12 | 10 | 243,15 m² | R$ 450.000,00 | Disponível |
-| 12 | 12 | 225,00 m² | R$ 416.400,00 | Reservado |
-| 12 | 14 | 225,00 m² | R$ 416.400,00 | Reservado |
-| 12 | 16 | 298,38 m² | R$ 605.400,00 | Disponível |
-| 12 | 20 | 225,00 m² | R$ 396.100,00 | Disponível |
-| 12 | 25 | 211,28 m² | R$ 372.000,00 | Disponível |
-| 12 | 29 | 211,28 m² | R$ 372.000,00 | Disponível |
-| 13 | 3 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 5 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 7 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 9 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 11 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 13 | 264,63 m² | R$ 536.900,00 | Disponível |
-| 13 | 17 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 19 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 21 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 13 | 23 | 225,00 m² | R$ 436.600,00 | Reservado |
-| 13 | 25 | 207,58 m² | R$ 402.800,00 | Disponível |
-| 14 | 3 | 250,00 m² | R$ 484.300,00 | Reservado |
-| 14 | 5 | 250,00 m² | R$ 484.300,00 | Disponível |
-| 14 | 7 | 250,00 m² | R$ 484.300,00 | Disponível |
-| 14 | 9 | 250,00 m² | R$ 484.300,00 | Disponível |
-| 14 | 11 | 250,00 m² | R$ 484.300,00 | Disponível |
-| 14 | 13 | 264,63 m² | R$ 537.700,00 | Disponível |
-| 14 | 16 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 14 | 18 | 225,00 m² | R$ 436.600,00 | Disponível |
-| 14 | 23 | 225,00 m² | R$ 436.600,00 | Reservado |
+# NOAH BEACH — TABELA DE LOTES DISPONÍVEIS
+# Empreendimento: Noah Beach
+# Categoria: Lotes e valores
+# ════════════════════════════════════════════
+
+## COMO LER ESTA TABELA
+Cada lote é identificado por Quadra e número do Lote.
+Status: Disponível = pode ser vendido | Reservado = já tem proposta
+
+## RESUMO GERAL
+Total de lotes listados: 134
+Menor lote: 201,86 m² — R$ 355.400,00
+Maior lote: 385,16 m² — R$ 814.600,00
+Faixa de preço: R$ 355.400,00 a R$ 814.600,00
+
+---
+
+## QUADRA 1
+
+Lote 2 — 303,75 m² — R$ 563.100,00 — Disponível
+Lote 4 — 270,00 m² — R$ 499.600,00 — Reservado
+Lote 6 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 8 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 10 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 12 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 14 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 16 — 260,85 m² — R$ 482.300,00 — Disponível
+
+---
+
+## QUADRA 2
+
+Lote 6 — 225,00 m² — R$ 416.400,00 — Reservado
+Lote 8 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 10 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 12 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 14 — 264,63 m² — R$ 536.700,00 — Disponível
+Lote 16 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 18 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 20 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 22 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 24 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 26 — 270,00 m² — R$ 499.600,00 — Reservado
+Lote 28 — 293,53 m² — R$ 596.100,00 — Disponível
+
+---
+
+## QUADRA 3
+
+Lote 2 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 4 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 7 — 225,00 m² — R$ 436.600,00 — Reservado
+Lote 12 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 14 — 264,73 m² — R$ 536.700,00 — Disponível
+Lote 16 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 18 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 20 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 23 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 27 — 293,42 m² — R$ 616.200,00 — Disponível
+
+---
+
+## QUADRA 4
+
+Lote 5 — 201,86 m² — R$ 355.400,00 — Disponível
+Lote 8 — 203,21 m² — R$ 357.700,00 — Disponível
+Lote 10 — 204,11 m² — R$ 359.300,00 — Disponível
+Lote 13 — 205,45 m² — R$ 361.700,00 — Disponível
+Lote 15 — 206,35 m² — R$ 363.200,00 — Disponível
+Lote 18 — 207,70 m² — R$ 365.700,00 — Disponível
+Lote 20 — 208,60 m² — R$ 367.200,00 — Disponível
+Lote 22 — 209,49 m² — R$ 368.800,00 — Disponível
+Lote 24 — 210,39 m² — R$ 370.400,00 — Disponível
+Lote 26 — 211,29 m² — R$ 372.000,00 — Disponível
+Lote 28 — 236,74 m² — R$ 417.200,00 — Disponível
+
+---
+
+## QUADRA 5
+
+Lote 2 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 4 — 225,00 m² — R$ 417.500,00 — Reservado
+Lote 6 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 8 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 13 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 15 — 342,36 m² — R$ 694.800,00 — Disponível
+Lote 17 — 247,50 m² — R$ 459.200,00 — Disponível
+Lote 19 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 21 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 23 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 25 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 27 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 29 — 225,00 m² — R$ 417.500,00 — Disponível
+Lote 31 — 287,13 m² — R$ 583.200,00 — Disponível
+
+---
+
+## QUADRA 6
+
+Lote 9 — 385,16 m² — R$ 814.600,00 — Disponível
+Lote 11 — 225,00 m² — R$ 437.100,00 — Disponível
+Lote 13 — 225,00 m² — R$ 437.100,00 — Disponível
+Lote 15 — 225,00 m² — R$ 437.100,00 — Disponível
+Lote 17 — 225,00 m² — R$ 437.100,00 — Disponível
+Lote 19 — 225,00 m² — R$ 437.100,00 — Disponível
+Lote 21 — 299,13 m² — R$ 607.800,00 — Reservado
+
+---
+
+## QUADRA 8
+
+Lote 5 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 7 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 9 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 12 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 14 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 16 — 238,04 m² — R$ 440.500,00 — Disponível
+Lote 18 — 237,82 m² — R$ 440.100,00 — Disponível
+Lote 22 — 379,33 m² — R$ 701.900,00 — Disponível
+Lote 25 — 313,17 m² — R$ 579.500,00 — Disponível
+Lote 27 — 277,25 m² — R$ 513.000,00 — Disponível
+Lote 29 — 251,42 m² — R$ 465.300,00 — Disponível
+Lote 31 — 235,23 m² — R$ 435.300,00 — Disponível
+Lote 33 — 227,41 m² — R$ 420.800,00 — Disponível
+Lote 35 — 227,42 m² — R$ 420.800,00 — Disponível
+Lote 37 — 222,86 m² — R$ 412.400,00 — Disponível
+Lote 39 — 225,17 m² — R$ 416.700,00 — Disponível
+Lote 41 — 224,37 m² — R$ 415.200,00 — Disponível
+Lote 43 — 224,53 m² — R$ 415.500,00 — Disponível
+Lote 45 — 224,99 m² — R$ 416.400,00 — Disponível
+Lote 47 — 225,17 m² — R$ 416.700,00 — Disponível
+Lote 49 — 225,23 m² — R$ 416.800,00 — Disponível
+Lote 51 — 225,39 m² — R$ 417.100,00 — Disponível
+Lote 53 — 225,70 m² — R$ 417.700,00 — Disponível
+Lote 55 — 263,60 m² — R$ 487.800,00 — Disponível
+Lote 57 — 377,46 m² — R$ 698.500,00 — Disponível
+Lote 59 — 230,00 m² — R$ 425.600,00 — Disponível
+Lote 61 — 239,18 m² — R$ 442.600,00 — Disponível
+
+---
+
+## QUADRA 9
+
+Lote 1 — 264,63 m² — R$ 536.300,00 — Disponível
+Lote 3 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 5 — 225,00 m² — R$ 436.600,00 — Reservado
+Lote 14 — 225,00 m² — R$ 416.400,00 — Reservado
+Lote 16 — 225,00 m² — R$ 416.400,00 — Disponível
+Lote 18 — 247,50 m² — R$ 458.000,00 — Disponível
+Lote 20 — 297,65 m² — R$ 603.900,00 — Disponível
+
+---
+
+## QUADRA 10
+
+Lote 2 — 327,27 m² — R$ 663.000,00 — Disponível
+Lote 6 — 358,78 m² — R$ 758.800,00 — Reservado
+Lote 12 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 14 — 247,50 m² — R$ 480.300,00 — Reservado
+
+---
+
+## QUADRA 11
+
+Lote 2 — 317,06 m² — R$ 642.300,00 — Disponível
+Lote 4 — 317,16 m² — R$ 642.500,00 — Disponível
+Lote 11 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 17 — 225,49 m² — R$ 437.600,00 — Disponível
+Lote 21 — 249,26 m² — R$ 483.700,00 — Disponível
+
+---
+
+## QUADRA 12
+
+Lote 2 — 254,40 m² — R$ 470.800,00 — Reservado
+Lote 4 — 243,15 m² — R$ 450.000,00 — Reservado
+Lote 8 — 243,15 m² — R$ 450.000,00 — Disponível
+Lote 10 — 243,15 m² — R$ 450.000,00 — Disponível
+Lote 12 — 225,00 m² — R$ 416.400,00 — Reservado
+Lote 14 — 225,00 m² — R$ 416.400,00 — Reservado
+Lote 16 — 298,38 m² — R$ 605.400,00 — Disponível
+Lote 20 — 225,00 m² — R$ 396.100,00 — Disponível
+Lote 25 — 211,28 m² — R$ 372.000,00 — Disponível
+Lote 29 — 211,28 m² — R$ 372.000,00 — Disponível
+
+---
+
+## QUADRA 13
+
+Lote 3 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 5 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 7 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 9 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 11 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 13 — 264,63 m² — R$ 536.900,00 — Disponível
+Lote 17 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 19 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 21 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 23 — 225,00 m² — R$ 436.600,00 — Reservado
+Lote 25 — 207,58 m² — R$ 402.800,00 — Disponível
+
+---
+
+## QUADRA 14
+
+Lote 3 — 250,00 m² — R$ 484.300,00 — Reservado
+Lote 5 — 250,00 m² — R$ 484.300,00 — Disponível
+Lote 7 — 250,00 m² — R$ 484.300,00 — Disponível
+Lote 9 — 250,00 m² — R$ 484.300,00 — Disponível
+Lote 11 — 250,00 m² — R$ 484.300,00 — Disponível
+Lote 13 — 264,63 m² — R$ 537.700,00 — Disponível
+Lote 16 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 18 — 225,00 m² — R$ 436.600,00 — Disponível
+Lote 23 — 225,00 m² — R$ 436.600,00 — Reservado
+
+---
