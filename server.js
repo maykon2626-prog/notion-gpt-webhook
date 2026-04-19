@@ -1,8 +1,10 @@
 const express = require('express')
 const { Client } = require('@notionhq/client')
 const Anthropic = require('@anthropic-ai/sdk')
+const cors = require('cors')
 
 const app = express()
+app.use(cors())
 app.use(express.json())
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
@@ -93,20 +95,30 @@ ${contexto}`,
     }
 }
 
+async function enviarWhatsApp(numero, texto) {
+    try {
+        await fetch(`${process.env.EVOLUTION_URL}/message/sendText/${process.env.EVOLUTION_INSTANCE}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': process.env.EVOLUTION_KEY
+            },
+            body: JSON.stringify({ number: numero, text: texto })
+        })
+    } catch (err) {
+        console.error('Erro ao enviar WhatsApp:', err.message)
+    }
+}
+
 app.get('/search', async (req, res) => {
     try {
         const query = req.query.query
-        if (!query) {
-            return res.status(400).json({ erro: 'Envie um campo query' })
-        }
-        console.log('Buscando no Notion:', query)
+        if (!query) return res.status(400).json({ erro: 'Envie um campo query' })
         const result = await notion.search({
             query: query,
             filter: { property: 'object', value: 'page' }
         })
-        if (result.results.length === 0) {
-            return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
-        }
+        if (result.results.length === 0) return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
         const page = result.results[0]
         const contexto = await extrairTexto(page.id)
         return res.json({
@@ -123,13 +135,9 @@ app.get('/search', async (req, res) => {
 app.post('/webhook', async (req, res) => {
     try {
         const { pageId } = req.body
-        if (!pageId) {
-            return res.status(400).json({ erro: 'Envie pageId no body' })
-        }
+        if (!pageId) return res.status(400).json({ erro: 'Envie pageId no body' })
         const conteudo = await extrairTexto(pageId)
-        if (!conteudo) {
-            return res.status(404).json({ erro: 'Pagina sem conteudo' })
-        }
+        if (!conteudo) return res.status(404).json({ erro: 'Pagina sem conteudo' })
         return res.json({ conteudo })
     } catch (err) {
         console.error('Erro no webhook:', err.message)
@@ -148,9 +156,7 @@ app.post('/perguntar', async (req, res) => {
         console.log('1. Pergunta recebida:', pergunta)
         console.log('2. Query:', query)
 
-        if (!pergunta) {
-            return res.status(400).json({ erro: 'Envie uma pergunta' })
-        }
+        if (!pergunta) return res.status(400).json({ erro: 'Envie uma pergunta' })
 
         let contexto = 'Sem contexto disponivel.'
 
@@ -162,7 +168,6 @@ app.post('/perguntar', async (req, res) => {
                     filter: { property: 'object', value: 'page' }
                 })
                 console.log('4. Notion retornou:', result.results.length, 'paginas')
-
                 if (result.results.length > 0) {
                     const page = result.results[0]
                     console.log('5. Extraindo texto da pagina:', page.id)
@@ -183,6 +188,44 @@ app.post('/perguntar', async (req, res) => {
     } catch (err) {
         console.error('ERRO GERAL:', err.message)
         return res.status(500).json({ erro: err.message })
+    }
+})
+
+app.post('/whatsapp', async (req, res) => {
+    try {
+        const msg = req.body
+
+        const texto = msg?.data?.message?.conversation ||
+                      msg?.data?.message?.extendedTextMessage?.text
+
+        const numero = msg?.data?.key?.remoteJid
+
+        if (!texto || !numero) return res.sendStatus(200)
+
+        console.log('WhatsApp - De:', numero)
+        console.log('WhatsApp - Texto:', texto)
+
+        let contexto = 'Sem contexto disponivel.'
+        try {
+            const result = await notion.search({
+                query: texto,
+                filter: { property: 'object', value: 'page' }
+            })
+            if (result.results.length > 0) {
+                contexto = await extrairTexto(result.results[0].id)
+            }
+        } catch (notionErr) {
+            console.error('ERRO Notion no WhatsApp:', notionErr.message)
+        }
+
+        const resposta = await perguntarClaude(contexto, texto)
+        await enviarWhatsApp(numero, resposta)
+
+        return res.sendStatus(200)
+
+    } catch (err) {
+        console.error('Erro no WhatsApp:', err.message)
+        return res.sendStatus(200)
     }
 })
 
