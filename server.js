@@ -72,7 +72,7 @@ async function perguntarClaude(contexto, pergunta) {
     try {
         const response = await Promise.race([
             anthropic.messages.create({
-                model: 'claude-haiku-4-5-20251001',
+                model: 'claude-sonnet-4-6',
                 max_tokens: 512,
                 system: `Você é Bellinha, assistente virtual da Bella Casa & Okada.
 Responda sempre no feminino e use primeira pessoa do plural ao falar da empresa.
