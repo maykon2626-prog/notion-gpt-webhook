@@ -6,9 +6,11 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "@notionhq/client": "^2.2.15",
     "@anthropic-ai/sdk": "^0.20.0",
-    "cors": "^2.8.5"
+    "@notionhq/client": "^2.2.15",
+    "@supabase/supabase-js": "^2.103.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2"
   }
 }
