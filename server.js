@@ -397,8 +397,17 @@ app.get('/analytics', async (req, res) => {
     if (senha !== process.env.DASHBOARD_PASSWORD) return res.status(401).json({ erro: 'Senha incorreta' })
 
     try {
-        const { data: conversas } = await supabase.from('conversas').select('nome, tipo, mensagens, numero')
-        const { data: lacunas } = await supabase.from('lacunas').select('pergunta, criado_em').eq('revisado', false).order('criado_em', { ascending: false }).limit(10)
+        const { de, ate } = req.query
+        let query = supabase.from('conversas').select('nome, tipo, mensagens, numero, atualizado_em')
+        if (de) query = query.gte('atualizado_em', new Date(de).toISOString())
+        if (ate) query = query.lte('atualizado_em', new Date(ate + 'T23:59:59').toISOString())
+        const { data: conversas } = await query
+
+        let lacunasQuery = supabase.from('lacunas').select('pergunta, criado_em').eq('revisado', false).order('criado_em', { ascending: false }).limit(10)
+        if (de) lacunasQuery = lacunasQuery.gte('criado_em', new Date(de).toISOString())
+        if (ate) lacunasQuery = lacunasQuery.lte('criado_em', new Date(ate + 'T23:59:59').toISOString())
+        const { data: lacunas } = await lacunasQuery
+
         const { data: faqs } = await supabase.from('faq_gerado').select('arquivo, criado_em').order('criado_em', { ascending: false }).limit(5)
 
         const normalizar = str => str?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() || ''
@@ -490,6 +499,11 @@ app.get('/dashboard', (req, res) => {
   .bar { background: #4f46e5; height: 8px; border-radius: 4px; }
   .tag { display: inline-block; background: #ede9fe; color: #4f46e5; border-radius: 6px; padding: 2px 8px; font-size: 12px; }
   .lacuna { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #555; }
+  .filtros { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; background: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); flex-wrap: wrap; }
+  .filtros label { font-size: 13px; color: #888; }
+  .filtros input[type=date] { border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+  .filtros button { padding: 7px 18px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .filtros button.limpar { background: #f0f0f0; color: #555; }
 </style>
 </head>
 <body>
@@ -504,6 +518,13 @@ app.get('/dashboard', (req, res) => {
 </div>
 <div id="app">
   <h1>Dashboard Bellinha</h1>
+  <div class="filtros">
+    <label>De: <input type="date" id="f-de"></label>
+    <label>Até: <input type="date" id="f-ate"></label>
+    <button onclick="filtrar()">Filtrar</button>
+    <button class="limpar" onclick="limparFiltro()">Limpar</button>
+    <span id="f-label" style="font-size:12px;color:#aaa"></span>
+  </div>
   <div class="grid">
     <div class="card"><h3>Total de Corretores</h3><div class="num" id="total-corretores">-</div></div>
     <div class="card"><h3>Total de Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
@@ -541,6 +562,25 @@ async function entrar() {
   document.getElementById('login').style.display = 'none'
   document.getElementById('app').style.display = 'block'
   renderizar(data)
+}
+async function filtrar() {
+  const de = document.getElementById('f-de').value
+  const ate = document.getElementById('f-ate').value
+  let url = '/analytics'
+  const params = new URLSearchParams()
+  if (de) params.append('de', de)
+  if (ate) params.append('ate', ate)
+  if (params.toString()) url += '?' + params.toString()
+  document.getElementById('f-label').textContent = de || ate ? \`Filtrando: \${de||'início'} → \${ate||'hoje'}\` : ''
+  const r = await fetch(url, { headers: { 'x-senha': senhaAtual } })
+  renderizar(await r.json())
+}
+async function limparFiltro() {
+  document.getElementById('f-de').value = ''
+  document.getElementById('f-ate').value = ''
+  document.getElementById('f-label').textContent = ''
+  const r = await fetch('/analytics', { headers: { 'x-senha': senhaAtual } })
+  renderizar(await r.json())
 }
 function renderizar(d) {
   document.getElementById('total-corretores').textContent = d.total_corretores
