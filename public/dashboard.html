@@ -6,6 +6,7 @@
 <title>Bellinha — Dashboard</title>
 <link rel="icon" href="https://bellacasaeokada.com.br/wp-content/uploads/fbrfg/favicon-96x96.png">
 <link rel="stylesheet" href="dashboard.css">
+<script>if(sessionStorage.getItem('dash_token'))document.documentElement.classList.add('logado')</script>
 </head>
 <body>
 
@@ -58,6 +59,7 @@
       <img class="sidebar-logo-img" src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
     </div>
 
+
     <ul class="sidebar-menu">
       <li class="menu-item active" data-pagina="analytics" onclick="navegarPara('analytics')">
         <span class="menu-icon">
@@ -79,9 +81,14 @@
       </li>
     </ul>
 
-    <button class="hamburger" onclick="toggleSidebar()" title="Menu">
-      <span></span><span></span><span></span>
-    </button>
+    <ul class="sidebar-menu sidebar-bottom-menu">
+      <li class="menu-item" onclick="toggleSidebar()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </span>
+        <span class="menu-label">Menu</span>
+      </li>
+    </ul>
   </nav>
 
   <!-- Conteúdo principal -->

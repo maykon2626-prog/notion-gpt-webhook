@@ -28,14 +28,19 @@ body {
 
 /* ── Login ─────────────────────────────────────── */
 
-#login {
+/* Padrão: tudo oculto até o JS decidir o que mostrar */
+#login { display: none; }
+#app   { display: none; }
+
+/* Sem token: mostra login imediatamente (via script inline no head) */
+html:not(.logado) #login {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   padding: 24px;
   background:
-    linear-gradient(rgba(6,44,76,0.55), rgba(6,44,76,0.55)),
+    linear-gradient(rgba(0,0,0,0.20), rgba(0,0,0,0.20)),
     url('https://bellacasaeokada.com.br/wp-content/uploads/2025/09/Catalogo_Arya_1-1.jpg')
     center/cover no-repeat;
 }
@@ -151,30 +156,28 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .form-erro { color: #b94a48; font-size: 13px; margin-top: 8px; min-height: 18px; }
 .form-ok   { color: var(--accent); font-size: 13px; margin-top: 8px; min-height: 18px; }
 
-/* ── Hamburger ──────────────────────────────────── */
+/* ── Hamburger mobile (topbar) ──────────────────── */
 
 .hamburger {
   background: transparent;
   border: none;
-  width: 40px;
-  height: 40px;
-  padding: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 7px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
   flex-shrink: 0;
-  border-radius: 8px;
-  transition: background .15s;
+  border-radius: 6px;
 }
 .hamburger span {
   display: block;
   height: 2px;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.8);
   border-radius: 2px;
 }
 .hamburger:hover { background: rgba(255,255,255,0.08); }
-.hamburger:hover span { background: #fff; }
 
 /* ── Sidebar ────────────────────────────────────── */
 
@@ -250,9 +253,10 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .menu-icon svg { width: 18px; height: 18px; }
 
-/* Hamburger no rodapé da sidebar */
-.sidebar > .hamburger {
-  margin: 8px 10px 16px;
+/* Menu item no rodapé da sidebar */
+.sidebar-bottom-menu {
+  padding: 0 0 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
   flex-shrink: 0;
 }
 
@@ -262,6 +266,8 @@ body.sidebar-collapsed #sidebar { width: 60px; }
 body.sidebar-collapsed #conteudo { margin-left: 60px; }
 
 body.sidebar-collapsed .sidebar-logo-wrap { display: none; }
+body.sidebar-collapsed .sidebar-bottom-menu .menu-label { display: none; }
+body.sidebar-collapsed .sidebar-bottom-menu .menu-item { justify-content: center; padding: 14px 0; }
 
 body.sidebar-collapsed .menu-item {
   justify-content: center;
