@@ -353,14 +353,32 @@ app.post('/whatsapp', async (req, res) => {
         mensagens.push({ role: 'user', content: textoPuro })
 
         // Gera resposta com histórico
-        const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, textoPuro, imagemBase64)
+        let resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, textoPuro, imagemBase64)
+
+        // Feature 3: detecta resposta insuficiente
+        const respostaInsuficiente = /não tenho esse dado|não encontrei|sem (contexto|informaç)/i.test(resposta)
+        if (respostaInsuficiente) {
+            // Salva lacuna para revisão
+            await supabase.from('lacunas').insert({
+                pergunta: textoPuro,
+                resposta_bellinha: resposta,
+                numero
+            })
+            // Tenta busca mais ampla
+            const contextoExtra = await buscarSupabase(textoPuro, 8)
+            if (contextoExtra && contextoExtra.length > contexto.length) {
+                console.log('Tentando com contexto expandido...')
+                resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contextoExtra, textoPuro, imagemBase64)
+            }
+        }
+
         mensagens.push({ role: 'assistant', content: resposta })
 
         // Se atingiu 30 mensagens, gera resumo e limpa
         if (mensagens.length >= LIMITE_MENSAGENS) {
             console.log('Gerando resumo para', numero)
             resumo = await gerarResumo(nome, resumo, mensagens)
-            mensagens = [] // limpa histórico após resumir
+            mensagens = []
         }
 
         await salvarConversa(numero, nome, tipo, resumo, mensagens, ativo)
@@ -392,6 +410,69 @@ app.post('/perguntar', async (req, res) => {
 
     } catch (err) {
         console.error('Erro:', err.message)
+        return res.status(500).json({ erro: err.message })
+    }
+})
+
+app.post('/gerar-faq', async (req, res) => {
+    try {
+        console.log('Iniciando geração de FAQ...')
+
+        // Busca todas as conversas com mensagens
+        const { data: conversas, error } = await supabase
+            .from('conversas')
+            .select('nome, mensagens, resumo')
+            .neq('mensagens', '[]')
+
+        if (error || !conversas?.length) {
+            return res.json({ status: 'nenhuma conversa encontrada' })
+        }
+
+        // Agrupa todas as perguntas dos corretores
+        const todasPerguntas = []
+        for (const conv of conversas) {
+            const msgs = conv.mensagens || []
+            for (const m of msgs) {
+                if (m.role === 'user') todasPerguntas.push(m.content)
+            }
+            if (conv.resumo) todasPerguntas.push(`[resumo] ${conv.resumo}`)
+        }
+
+        if (!todasPerguntas.length) return res.json({ status: 'sem perguntas' })
+
+        // Claude analisa e gera FAQ
+        const analise = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2000,
+            system: `Você analisa conversas de corretores imobiliários e gera um documento FAQ.
+Identifique os temas mais frequentes e gere respostas baseadas nos padrões.
+Formato de saída: título, perguntas agrupadas por tema com respostas diretas.
+Use texto puro sem markdown.`,
+            messages: [{
+                role: 'user',
+                content: `Analise essas perguntas e gere um FAQ:\n\n${todasPerguntas.slice(0, 200).join('\n')}`
+            }]
+        })
+
+        const conteudoFaq = analise.content[0].text
+        const nomeArquivo = `faq-gerado-${new Date().toISOString().slice(0, 10)}.txt`
+
+        // Salva na tabela faq_gerado
+        await supabase.from('faq_gerado').insert({ arquivo: nomeArquivo, conteudo: conteudoFaq })
+
+        // Indexa no Supabase para a Bellinha usar
+        const embedding = await gerarEmbedding(conteudoFaq.slice(0, 2000))
+        await supabase.from('documentos').insert({
+            arquivo: `faq/${nomeArquivo}`,
+            conteudo: conteudoFaq,
+            embedding
+        })
+
+        console.log('FAQ gerado e indexado:', nomeArquivo)
+        return res.json({ status: 'ok', arquivo: nomeArquivo })
+
+    } catch (err) {
+        console.error('Erro ao gerar FAQ:', err.message)
         return res.status(500).json({ erro: err.message })
     }
 })
