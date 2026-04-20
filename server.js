@@ -195,7 +195,19 @@ app.post('/whatsapp', async (req, res) => {
         if (isGrupo) {
             const { nome: nomeGrupo, tipo: tipoGrupo, resumo: resumoGrupo, mensagens: mensagensGrupo, ativo: ativoGrupo } = await carregarConversa(numero)
             const remetente = msg?.data?.key?.participant || numero
-            mensagensGrupo.push({ role: 'user', content: `[${remetente}]: ${texto}` })
+
+            // Tenta identificar o remetente pelo número na tabela conversas
+            const { data: dadosRemetente } = await supabase
+                .from('conversas')
+                .select('nome, tipo')
+                .eq('numero', remetente)
+                .single()
+            const nomeRemetente = dadosRemetente?.nome || remetente
+            const tipoRemetente = dadosRemetente?.tipo || ''
+            const labelRemetente = tipoRemetente ? `${nomeRemetente} (${tipoRemetente})` : nomeRemetente
+
+            console.log('GRUPO - Remetente identificado:', labelRemetente)
+            mensagensGrupo.push({ role: 'user', content: `[${labelRemetente}]: ${texto}` })
 
             let novoAtivo = ativoGrupo
             if (mencionada) novoAtivo = true
@@ -233,6 +245,14 @@ app.post('/whatsapp', async (req, res) => {
         const textoPuro = texto.replace(/@?bel{1,2}inha/gi, '').trim()
 
         let { nome, tipo, resumo, mensagens, ativo } = await carregarConversa(numero)
+
+        // Em grupos, identifica quem está perguntando para o Claude
+        if (isGrupo) {
+            const remetente = msg?.data?.key?.participant || numero
+            const { data: dadosRem } = await supabase.from('conversas').select('nome, tipo').eq('numero', remetente).single()
+            nome = dadosRem?.nome || ''
+            tipo = dadosRem?.tipo || ''
+        }
 
         // Em grupos não faz onboarding
         if (!isGrupo) {
