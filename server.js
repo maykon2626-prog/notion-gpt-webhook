@@ -468,8 +468,44 @@ Use texto puro sem markdown.`,
             embedding
         })
 
+        // Salva no GitHub como docs/faq-gerado.txt
+        const githubToken = process.env.GITHUB_TOKEN
+        const githubRepo = 'maykon2626-prog/notion-gpt-webhook'
+        const githubPath = 'docs/faq-gerado.txt'
+        const isSegunda = new Date().getDay() === 1
+
+        // Busca SHA do arquivo atual (necessário para atualizar)
+        const getRes = await fetch(`https://api.github.com/repos/${githubRepo}/contents/${githubPath}`, {
+            headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' }
+        })
+        const getJson = await getRes.json()
+        const sha = getRes.ok ? getJson.sha : null
+
+        // Segunda-feira limpa, outros dias acumula
+        const conteudoAtual = (!isSegunda && sha)
+            ? Buffer.from(getJson.content, 'base64').toString('utf-8')
+            : ''
+        const novoConteudo = conteudoAtual
+            ? `${conteudoAtual}\n\n---\n${new Date().toLocaleDateString('pt-BR')}\n${conteudoFaq}`
+            : `${new Date().toLocaleDateString('pt-BR')}\n${conteudoFaq}`
+
+        const putBody = {
+            message: isSegunda ? 'FAQ semanal reiniciado' : `FAQ atualizado ${new Date().toLocaleDateString('pt-BR')}`,
+            content: Buffer.from(novoConteudo).toString('base64'),
+            ...(sha && { sha })
+        }
+
+        const putRes = await fetch(`https://api.github.com/repos/${githubRepo}/contents/${githubPath}`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(putBody)
+        })
+
+        const githubOk = putRes.ok
+        console.log('GitHub save:', githubOk ? 'ok' : 'falhou')
+
         console.log('FAQ gerado e indexado:', nomeArquivo)
-        return res.json({ status: 'ok', arquivo: nomeArquivo })
+        return res.json({ status: 'ok', arquivo: nomeArquivo, github: githubOk })
 
     } catch (err) {
         console.error('Erro ao gerar FAQ:', err.message)
