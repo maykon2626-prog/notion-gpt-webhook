@@ -24,6 +24,7 @@ async function claudeCreate(params) {
 }
 
 const LIMITE_MENSAGENS = 30
+const PRODUTOS = (process.env.PRODUTOS || 'Noah Beach,NOA Garden').split(',').map(p => p.trim())
 
 async function gerarEmbedding(texto) {
     const response = await fetch('https://api.voyageai.com/v1/embeddings', {
@@ -62,14 +63,15 @@ async function carregarConversa(numero) {
         .eq('numero', numero)
         .single()
 
-    if (error || !data) return { nome: '', tipo: '', resumo: '', mensagens: [], ativo: false, pendente_grupo: '' }
+    if (error || !data) return { nome: '', tipo: '', resumo: '', mensagens: [], ativo: false, pendente_grupo: '', pendente_produto: null }
     return {
         nome: data.nome || '',
         tipo: data.tipo || '',
         resumo: data.resumo || '',
         mensagens: data.mensagens || [],
         ativo: data.ativo || false,
-        pendente_grupo: data.pendente_grupo || ''
+        pendente_grupo: data.pendente_grupo || '',
+        pendente_produto: data.pendente_produto || null
     }
 }
 
@@ -141,6 +143,34 @@ Se não identificar, use o texto original.`,
     } catch {
         return texto.trim()
     }
+}
+
+async function detectarProduto(texto) {
+    const res = await claudeCreate({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 150,
+        system: `Analise se a mensagem menciona algum empreendimento desta lista: ${PRODUTOS.join(', ')}.
+Responda APENAS em JSON:
+- Menciona claramente um: {"produto": "nome exato da lista", "ambiguo": false}
+- Ambíguo (pode ser mais de um): {"produto": null, "ambiguo": true, "candidatos": ["nome1", "nome2"]}
+- Não menciona nenhum: {"produto": null, "ambiguo": false}`,
+        messages: [{ role: 'user', content: texto }]
+    })
+    try { return JSON.parse(res.content[0].text) }
+    catch { return { produto: null, ambiguo: false } }
+}
+
+async function resolverProduto(resposta, candidatos) {
+    const res = await claudeCreate({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 50,
+        system: `O usuário está escolhendo entre: ${candidatos.map((p, i) => `${i + 1}. ${p}`).join(', ')}. Responda APENAS em JSON: {"produto": "nome exato escolhido"}. Se não identificar, use o primeiro.`,
+        messages: [{ role: 'user', content: resposta }]
+    })
+    try {
+        const info = JSON.parse(res.content[0].text)
+        return info.produto || candidatos[0]
+    } catch { return candidatos[0] }
 }
 
 async function gerarResumo(nome, resumoAnterior, mensagens) {
@@ -347,7 +377,7 @@ app.post('/whatsapp', async (req, res) => {
         // Remove a menção do texto antes de processar
         const textoPuro = texto.replace(/@?bel{1,2}inha/gi, '').trim()
 
-        let { nome, tipo, resumo, mensagens, ativo } = await carregarConversa(numero)
+        let { nome, tipo, resumo, mensagens, ativo, pendente_produto: pendenteProduto } = await carregarConversa(numero)
 
         // Em grupos, identifica quem está perguntando para o Claude
         if (isGrupo) {
@@ -404,8 +434,38 @@ app.post('/whatsapp', async (req, res) => {
             return res.sendStatus(200)
         }
 
+        // Resolução de produto pendente (usuário respondeu à lista)
+        if (!isGrupo && pendenteProduto) {
+            const { candidatos, pergunta_original } = pendenteProduto
+            const produto = await resolverProduto(textoPuro, candidatos)
+            await supabase.from('conversas').update({ pendente_produto: null }).eq('numero', numero)
+            const contexto = await buscarSupabase(`${produto} ${pergunta_original}`)
+            mensagens.push({ role: 'user', content: pergunta_original })
+            const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, pergunta_original)
+            mensagens.push({ role: 'assistant', content: resposta })
+            if (mensagens.length >= LIMITE_MENSAGENS) { resumo = await gerarResumo(nome, resumo, mensagens); mensagens = [] }
+            await salvarConversa(numero, nome, tipo, resumo, mensagens, ativo)
+            await enviarWhatsApp(numero, resposta)
+            return res.sendStatus(200)
+        }
+
+        // Detecta ambiguidade de produto
+        const deteccao = await detectarProduto(textoPuro)
+        if (deteccao.ambiguo && deteccao.candidatos?.length > 1) {
+            const lista = deteccao.candidatos.map((p, i) => `${i + 1}. ${p}`).join('\n')
+            const msg = `Encontrei ${deteccao.candidatos.length} empreendimentos com esse nome:\n\n${lista}\n\nSobre qual você gostaria de saber?`
+            await supabase.from('conversas').upsert({
+                numero, pendente_produto: { candidatos: deteccao.candidatos, pergunta_original: textoPuro }, atualizado_em: new Date().toISOString()
+            }, { onConflict: 'numero' })
+            mensagens.push({ role: 'user', content: textoPuro })
+            mensagens.push({ role: 'assistant', content: msg })
+            await salvarConversa(numero, nome, tipo, resumo, mensagens, ativo)
+            await enviarWhatsApp(numero, msg)
+            return res.sendStatus(200)
+        }
+
         // Busca contexto no Supabase
-        const contexto = await buscarSupabase(textoPuro)
+        const contexto = await buscarSupabase(deteccao.produto ? `${deteccao.produto} ${textoPuro}` : textoPuro)
         console.log('Contexto tamanho:', contexto.length)
 
         // Adiciona mensagem do usuário ao histórico
@@ -497,7 +557,7 @@ app.get('/analytics', async (req, res) => {
             }
         }
 
-        const produtos = ['Noah Beach', 'NOA Garden', 'Noah']
+        const produtos = PRODUTOS
 
         for (const conv of conversas || []) {
             const msgs = conv.mensagens || []
