@@ -312,24 +312,36 @@ app.post('/whatsapp', async (req, res) => {
                 return res.sendStatus(200)
             }
 
-            // Segunda mensagem: extrai o nome e pergunta imobiliária
+            // Segunda mensagem: extrai nome e imobiliária (podem vir juntos)
             const extracaoNome = await claudeCreate({
                 model: 'claude-sonnet-4-6',
-                max_tokens: 50,
-                system: 'Extraia apenas o primeiro nome da mensagem. Responda APENAS em JSON: {"nome": "..."}. Se não identificar um nome, use o texto original.',
+                max_tokens: 80,
+                system: 'Extraia o nome e o vínculo profissional da mensagem. Responda APENAS em JSON: {"nome": "...", "tipo": "..."}. Para "nome" use apenas o primeiro nome. Para "tipo": se for autônomo use "Autônomo", se mencionar imobiliária extraia apenas o nome dela, caso contrário deixe vazio "". Se não identificar nome, use o texto original.',
                 messages: [{ role: 'user', content: textoPuro }]
             })
             try {
                 const info = JSON.parse(extracaoNome.content[0].text)
                 nome = info.nome || textoPuro
+                tipo = info.tipo || ''
             } catch {
                 nome = textoPuro
+                tipo = ''
             }
             mensagens.push({ role: 'user', content: textoPuro })
-            const perguntaTipo = `Prazer, ${nome}! 😊 Você trabalha em alguma imobiliária? Se sim, qual? Ou é autônomo?`
-            mensagens.push({ role: 'assistant', content: perguntaTipo })
-            await salvarConversa(numero, nome, '', resumo, mensagens)
-            await enviarWhatsApp(numero, perguntaTipo)
+
+            if (tipo) {
+                // Já tem imobiliária/autônomo na mesma mensagem
+                const saudacao = `Prazer, ${nome}! 😊 ${tipo === 'Autônomo' ? 'Autônomo, ' : `Da ${tipo}, `}${nome}! Pode perguntar, estou aqui para te ajudar!`
+                mensagens.push({ role: 'assistant', content: saudacao })
+                await salvarConversa(numero, nome, tipo, resumo, mensagens)
+                await enviarWhatsApp(numero, saudacao)
+            } else {
+                // Pede imobiliária separado
+                const perguntaTipo = `Prazer, ${nome}! 😊 Você trabalha em alguma imobiliária? Se sim, qual? Ou é autônomo?`
+                mensagens.push({ role: 'assistant', content: perguntaTipo })
+                await salvarConversa(numero, nome, '', resumo, mensagens)
+                await enviarWhatsApp(numero, perguntaTipo)
+            }
             return res.sendStatus(200)
         }
         } // fim do bloco !isGrupo
