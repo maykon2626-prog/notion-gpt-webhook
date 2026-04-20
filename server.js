@@ -392,6 +392,177 @@ app.post('/whatsapp', async (req, res) => {
     }
 })
 
+app.get('/analytics', async (req, res) => {
+    const senha = req.headers['x-senha'] || req.query.senha
+    if (senha !== process.env.DASHBOARD_PASSWORD) return res.status(401).json({ erro: 'Senha incorreta' })
+
+    try {
+        const { data: conversas } = await supabase.from('conversas').select('nome, tipo, mensagens, numero')
+        const { data: lacunas } = await supabase.from('lacunas').select('pergunta, criado_em').eq('revisado', false).order('criado_em', { ascending: false }).limit(10)
+        const { data: faqs } = await supabase.from('faq_gerado').select('arquivo, criado_em').order('criado_em', { ascending: false }).limit(5)
+
+        const stats = {
+            total_corretores: conversas?.length || 0,
+            total_mensagens: 0,
+            por_corretor: [],
+            por_imobiliaria: {},
+            por_produto: {},
+            lacunas_pendentes: lacunas || [],
+            faqs_gerados: faqs || []
+        }
+
+        const produtos = ['Noah Beach', 'NOA Garden', 'Noah']
+
+        for (const conv of conversas || []) {
+            const msgs = conv.mensagens || []
+            const countUser = msgs.filter(m => m.role === 'user').length
+            stats.total_mensagens += countUser
+
+            if (conv.nome) {
+                stats.por_corretor.push({ nome: conv.nome, tipo: conv.tipo || 'Autônomo', mensagens: countUser })
+            }
+
+            const imob = conv.tipo || 'Autônomo'
+            stats.por_imobiliaria[imob] = (stats.por_imobiliaria[imob] || 0) + countUser
+
+            for (const m of msgs) {
+                if (m.role === 'user') {
+                    for (const prod of produtos) {
+                        if (m.content?.toLowerCase().includes(prod.toLowerCase())) {
+                            stats.por_produto[prod] = (stats.por_produto[prod] || 0) + 1
+                        }
+                    }
+                }
+            }
+        }
+
+        stats.por_corretor.sort((a, b) => b.mensagens - a.mensagens)
+
+        return res.json(stats)
+    } catch (err) {
+        return res.status(500).json({ erro: err.message })
+    }
+})
+
+app.get('/dashboard', (req, res) => {
+    res.send(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bellinha — Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: #f4f6f9; color: #333; }
+  #login { display: flex; align-items: center; justify-content: center; height: 100vh; }
+  #login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); text-align: center; width: 320px; }
+  #login-box h2 { margin-bottom: 8px; }
+  #login-box p { color: #888; margin-bottom: 24px; font-size: 14px; }
+  input[type=password] { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; margin-bottom: 12px; }
+  button { width: 100%; padding: 10px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
+  button:hover { background: #4338ca; }
+  #erro { color: red; font-size: 13px; margin-top: 8px; }
+  #app { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 24px; color: #4f46e5; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+  .card h3 { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .card .num { font-size: 32px; font-weight: bold; color: #4f46e5; }
+  .section { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); margin-bottom: 20px; }
+  .section h2 { font-size: 15px; margin-bottom: 14px; color: #555; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: #888; font-weight: 500; padding: 6px 8px; border-bottom: 1px solid #eee; }
+  td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
+  .bar-wrap { background: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 4px; }
+  .bar { background: #4f46e5; height: 8px; border-radius: 4px; }
+  .tag { display: inline-block; background: #ede9fe; color: #4f46e5; border-radius: 6px; padding: 2px 8px; font-size: 12px; }
+  .lacuna { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #555; }
+</style>
+</head>
+<body>
+<div id="login">
+  <div id="login-box">
+    <h2>🤖 Bellinha</h2>
+    <p>Dashboard de Analytics</p>
+    <input type="password" id="senha" placeholder="Senha" onkeydown="if(event.key==='Enter')entrar()">
+    <button onclick="entrar()">Entrar</button>
+    <div id="erro"></div>
+  </div>
+</div>
+<div id="app">
+  <h1>Dashboard Bellinha</h1>
+  <div class="grid">
+    <div class="card"><h3>Total de Corretores</h3><div class="num" id="total-corretores">-</div></div>
+    <div class="card"><h3>Total de Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
+    <div class="card"><h3>Lacunas Pendentes</h3><div class="num" id="total-lacunas">-</div></div>
+    <div class="card"><h3>FAQs Gerados</h3><div class="num" id="total-faqs">-</div></div>
+  </div>
+  <div class="section">
+    <h2>Corretores mais ativos</h2>
+    <table><thead><tr><th>#</th><th>Nome</th><th>Imobiliária</th><th>Mensagens</th></tr></thead>
+    <tbody id="tb-corretores"></tbody></table>
+  </div>
+  <div class="grid">
+    <div class="section">
+      <h2>Por Imobiliária</h2>
+      <div id="imob-list"></div>
+    </div>
+    <div class="section">
+      <h2>Produtos mais consultados</h2>
+      <div id="prod-list"></div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Lacunas pendentes de revisão</h2>
+    <div id="lacunas-list"></div>
+  </div>
+</div>
+<script>
+let senhaAtual = ''
+async function entrar() {
+  const s = document.getElementById('senha').value
+  const r = await fetch('/analytics', { headers: { 'x-senha': s } })
+  if (r.status === 401) { document.getElementById('erro').textContent = 'Senha incorreta'; return }
+  senhaAtual = s
+  const data = await r.json()
+  document.getElementById('login').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  renderizar(data)
+}
+function renderizar(d) {
+  document.getElementById('total-corretores').textContent = d.total_corretores
+  document.getElementById('total-mensagens').textContent = d.total_mensagens
+  document.getElementById('total-lacunas').textContent = d.lacunas_pendentes.length
+  document.getElementById('total-faqs').textContent = d.faqs_gerados.length
+
+  const max = d.por_corretor[0]?.mensagens || 1
+  document.getElementById('tb-corretores').innerHTML = d.por_corretor.slice(0, 10).map((c, i) =>
+    \`<tr><td>\${i+1}</td><td>\${c.nome}</td><td><span class="tag">\${c.tipo}</span></td><td>\${c.mensagens}</td></tr>\`
+  ).join('')
+
+  const maxImob = Math.max(...Object.values(d.por_imobiliaria), 1)
+  document.getElementById('imob-list').innerHTML = Object.entries(d.por_imobiliaria)
+    .sort((a,b) => b[1]-a[1]).map(([k,v]) =>
+      \`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>\${k}</span><span>\${v}</span></div>
+      <div class="bar-wrap"><div class="bar" style="width:\${Math.round(v/maxImob*100)}%"></div></div></div>\`
+    ).join('')
+
+  const maxProd = Math.max(...Object.values(d.por_produto), 1)
+  document.getElementById('prod-list').innerHTML = Object.entries(d.por_produto)
+    .sort((a,b) => b[1]-a[1]).map(([k,v]) =>
+      \`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>\${k}</span><span>\${v}</span></div>
+      <div class="bar-wrap"><div class="bar" style="width:\${Math.round(v/maxProd*100)}%"></div></div></div>\`
+    ).join('')
+
+  document.getElementById('lacunas-list').innerHTML = d.lacunas_pendentes.length
+    ? d.lacunas_pendentes.map(l => \`<div class="lacuna">❓ \${l.pergunta}</div>\`).join('')
+    : '<p style="color:#aaa;font-size:13px">Nenhuma lacuna pendente 🎉</p>'
+}
+</script>
+</body>
+</html>`)
+})
+
 app.post('/perguntar', async (req, res) => {
     res.setTimeout(28000, () => {
         return res.status(504).json({ erro: 'Timeout na requisicao' })
