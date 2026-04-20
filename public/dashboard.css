@@ -1,41 +1,306 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:           #F7F4F0;
+  --surface:      #FFFFFF;
+  --border:       #E8E0D6;
+  --text:         #2C2C2A;
+  --text-muted:   #8C8880;
+  --accent:       #7A8C5F;
+  --accent-dark:  #5F7049;
+  --accent-light: #EBF0E4;
+  --creme:        #E8DDD0;
+  --creme-text:   #5C5040;
+  --shadow:       0 1px 8px rgba(44, 44, 42, 0.06);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: sans-serif; background: #f4f6f9; color: #333; }
 
-#login { display: flex; align-items: center; justify-content: center; height: 100vh; }
-#login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); text-align: center; width: 320px; }
-#login-box h2 { margin-bottom: 8px; }
-#login-box p { color: #888; margin-bottom: 24px; font-size: 14px; }
-input[type=password] { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; margin-bottom: 12px; }
-button { width: 100%; padding: 10px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
-button:hover { background: #4338ca; }
-#erro { color: red; font-size: 13px; margin-top: 8px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
 
-#app { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
-h1 { font-size: 22px; margin-bottom: 24px; color: #4f46e5; }
+/* ── Login ─────────────────────────────────────── */
 
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+#login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--bg);
+}
 
-.card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
-.card h3 { font-size: 13px; color: #888; margin-bottom: 6px; }
-.card .num { font-size: 32px; font-weight: bold; color: #4f46e5; }
-.card .num-sm { font-size: 22px; font-weight: bold; color: #4f46e5; }
+#login-box {
+  background: var(--surface);
+  padding: 48px 40px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  text-align: center;
+  width: 340px;
+}
 
-.section { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); margin-bottom: 20px; }
-.section h2 { font-size: 15px; margin-bottom: 14px; color: #555; }
+#login-box .logo-login {
+  display: block;
+  max-width: 200px;
+  margin: 0 auto 24px;
+}
+
+#login-box h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+#login-box p {
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  font-size: 13px;
+}
+
+input[type=password] {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  margin-bottom: 12px;
+  outline: none;
+  transition: border-color .2s;
+}
+
+input[type=password]:focus { border-color: var(--accent); }
+
+button {
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .2s;
+}
+
+button:hover { background: var(--accent-dark); }
+
+#erro { color: #b94a48; font-size: 13px; margin-top: 10px; }
+
+/* ── App shell ──────────────────────────────────── */
+
+#app {
+  display: none;
+  padding: 32px 24px;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.app-header img {
+  height: 36px;
+}
+
+.app-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.app-header .subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ── Filtros ─────────────────────────────────────── */
+
+.filtros {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 28px;
+  background: var(--surface);
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.filtros label {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filtros input[type=date] {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color .2s;
+}
+
+.filtros input[type=date]:focus { border-color: var(--accent); }
+
+.filtros button {
+  width: auto;
+  padding: 7px 20px;
+  font-size: 13px;
+}
+
+.filtros button.limpar {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.filtros button.limpar:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+#f-label { font-size: 12px; color: var(--text-muted); }
+
+/* ── Grid / Cards ───────────────────────────────── */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 22px 20px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.card h3 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 8px;
+}
+
+.card .num {
+  font-size: 36px;
+  font-weight: 300;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.card .num-sm {
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--accent);
+  line-height: 1;
+}
+
+/* ── Sections ───────────────────────────────────── */
+
+.section {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.section h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+/* ── Table ──────────────────────────────────────── */
 
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th { text-align: left; color: #888; font-weight: 500; padding: 6px 8px; border-bottom: 1px solid #eee; }
-td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
 
-.bar-wrap { background: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 4px; }
-.bar { background: #4f46e5; height: 8px; border-radius: 4px; }
+th {
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
 
-.tag { display: inline-block; background: #ede9fe; color: #4f46e5; border-radius: 6px; padding: 2px 8px; font-size: 12px; }
-.lacuna { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #555; }
+td {
+  padding: 10px;
+  border-bottom: 1px solid var(--bg);
+  color: var(--text);
+}
 
-.filtros { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; background: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); flex-wrap: wrap; }
-.filtros label { font-size: 13px; color: #888; }
-.filtros input[type=date] { border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
-.filtros button { width: auto; padding: 7px 18px; font-size: 13px; }
-.filtros button.limpar { background: #f0f0f0; color: #555; }
-#f-label { font-size: 12px; color: #aaa; }
+tr:last-child td { border-bottom: none; }
+
+/* ── Bars ───────────────────────────────────────── */
+
+.bar-wrap {
+  background: var(--bg);
+  border-radius: 4px;
+  height: 6px;
+  margin-top: 6px;
+}
+
+.bar {
+  background: var(--accent);
+  height: 6px;
+  border-radius: 4px;
+}
+
+/* ── Tags ───────────────────────────────────────── */
+
+.tag {
+  display: inline-block;
+  background: var(--creme);
+  color: var(--creme-text);
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Lacunas ────────────────────────────────────── */
+
+.lacuna {
+  font-size: 13px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg);
+  color: var(--text-muted);
+}
+
+.lacuna:last-child { border-bottom: none; }

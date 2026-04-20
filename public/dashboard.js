@@ -50,7 +50,7 @@ function renderizar(d) {
     <tr>
       <td>${i + 1}</td>
       <td>${c.nome}</td>
-      <td><a href="https://wa.me/${c.telefone}" target="_blank" style="color:#25d366;text-decoration:none;font-size:13px">📱 ${c.telefone}</a></td>
+      <td><a href="https://wa.me/${c.telefone}" target="_blank" style="color:#7A8C5F;text-decoration:none;font-size:13px">📱 ${c.telefone}</a></td>
       <td><span class="tag">${c.tipo}</span></td>
       <td>${c.mensagens}</td>
     </tr>
@@ -91,7 +91,7 @@ function renderizar(d) {
         datasets: [{
           label: 'Mensagens',
           data: d.por_hora,
-          backgroundColor: '#4f46e5',
+          backgroundColor: '#7A8C5F',
           borderRadius: 4
         }]
       },

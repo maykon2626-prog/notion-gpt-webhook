@@ -10,8 +10,8 @@
 
 <div id="login">
   <div id="login-box">
-    <h2>🤖 Bellinha</h2>
-    <p>Dashboard de Analytics</p>
+    <img class="logo-login" src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
+    <p>Dashboard de Atendimento</p>
     <input type="password" id="senha" placeholder="Senha" onkeydown="if(event.key==='Enter')entrar()">
     <button onclick="entrar()">Entrar</button>
     <div id="erro"></div>
@@ -19,7 +19,14 @@
 </div>
 
 <div id="app">
-  <h1>Dashboard Bellinha</h1>
+
+  <div class="app-header">
+    <img src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
+    <div>
+      <h1>Dashboard</h1>
+      <span class="subtitle">Atendimento Bellinha</span>
+    </div>
+  </div>
 
   <div class="filtros">
     <label>De: <input type="date" id="f-de"></label>
@@ -30,8 +37,8 @@
   </div>
 
   <div class="grid">
-    <div class="card"><h3>Total de Corretores</h3><div class="num" id="total-corretores">-</div></div>
-    <div class="card"><h3>Total de Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
+    <div class="card"><h3>Corretores</h3><div class="num" id="total-corretores">-</div></div>
+    <div class="card"><h3>Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
     <div class="card"><h3>Lacunas Pendentes</h3><div class="num" id="total-lacunas">-</div></div>
     <div class="card"><h3>FAQs Gerados</h3><div class="num" id="total-faqs">-</div></div>
   </div>
@@ -76,6 +83,7 @@
     <h2>Lacunas pendentes de revisão</h2>
     <div id="lacunas-list"></div>
   </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
