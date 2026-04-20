@@ -38,24 +38,23 @@ function dividirTexto(texto, tamanho = 400) {
 }
 
 async function gerarEmbedding(texto) {
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
+    const response = await fetch('https://api.voyageai.com/v1/embeddings', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+            'Authorization': `Bearer ${process.env.VOYAGE_API_KEY}`
         },
         body: JSON.stringify({
-            model: 'text-embedding-3-small',
-            input: texto,
-            dimensions: 1024
+            model: 'voyage-3-lite',
+            input: texto
         })
     })
 
     const data = await response.json()
-    console.log('   OpenAI status:', response.status)
+    console.log('   Voyage status:', response.status)
 
     if (!response.ok) {
-        throw new Error(data.error?.message || 'Erro OpenAI')
+        throw new Error(data.detail || 'Erro Voyage')
     }
 
     if (!data.data || !data.data[0]) {
@@ -81,6 +80,8 @@ async function indexar() {
     const arquivos = lerArquivosRecursivo(docsDir)
     console.log(arquivos.length + ' arquivos encontrados')
 
+    let primeiraRequisicao = true
+
     for (const arquivo of arquivos) {
         const nome = path.relative(__dirname, arquivo)
         console.log('Indexando: ' + nome)
@@ -91,6 +92,8 @@ async function indexar() {
 
         for (let i = 0; i < pedacos.length; i++) {
             try {
+                if (!primeiraRequisicao) await new Promise(r => setTimeout(r, 25000))
+                primeiraRequisicao = false
                 const embedding = await gerarEmbedding(pedacos[i])
                 const { error } = await supabase.from('documentos').insert({
                     arquivo: nome,

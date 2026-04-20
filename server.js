@@ -1,111 +1,41 @@
 const express = require('express')
-const { Client } = require('@notionhq/client')
 const Anthropic = require('@anthropic-ai/sdk')
+const { createClient } = require('@supabase/supabase-js')
 const cors = require('cors')
 
 const app = express()
 app.use(cors())
 app.use(express.json())
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN })
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
-async function extrairTexto(pageId, profundidade = 0) {
-    if (profundidade > 2) return ''
-
-    try {
-        const blocks = await notion.blocks.children.list({ block_id: pageId })
-        const comTexto = [
-            'paragraph', 'heading_1', 'heading_2', 'heading_3',
-            'bulleted_list_item', 'numbered_list_item',
-            'quote', 'callout', 'toggle', 'to_do'
-        ]
-
-        let textos = []
-
-        for (const b of blocks.results) {
-            const tipo = b.type
-
-            if (comTexto.includes(tipo)) {
-                const texto = b[tipo]?.rich_text?.map(t => t.plain_text).join('') || ''
-                if (texto) textos.push(texto)
-            }
-
-            if (tipo === 'child_page') {
-                console.log('Entrando na subpagina:', b.child_page.title)
-                const sub = await extrairTexto(b.id, profundidade + 1)
-                if (sub) textos.push('\n## ' + b.child_page.title + '\n' + sub)
-            }
-
-            if (tipo === 'child_database') {
-                console.log('Lendo database:', b.child_database.title)
-                try {
-                    const db = await notion.databases.query({ database_id: b.id })
-                    for (const item of db.results) {
-                        const titulo = item.properties?.Name?.title?.[0]?.plain_text ||
-                                      item.properties?.titulo?.title?.[0]?.plain_text || ''
-                        const conteudoItem = await extrairTexto(item.id, profundidade + 1)
-                        if (titulo || conteudoItem) {
-                            textos.push('\n### ' + titulo + '\n' + conteudoItem)
-                        }
-                    }
-                } catch (dbErr) {
-                    console.error('Erro ao ler database:', dbErr.message)
-                }
-            }
-
-            if (b.has_children && tipo !== 'child_page' && tipo !== 'child_database') {
-                const filhos = await extrairTexto(b.id, profundidade + 1)
-                if (filhos) textos.push(filhos)
-            }
-        }
-
-        return textos.join('\n')
-
-    } catch (err) {
-        console.error('Erro ao extrair texto:', err.message)
-        return ''
-    }
+async function gerarEmbedding(texto) {
+    const response = await fetch('https://api.voyageai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.VOYAGE_API_KEY}`
+        },
+        body: JSON.stringify({ model: 'voyage-3-lite', input: texto })
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.detail || 'Erro Voyage')
+    return data.data[0].embedding
 }
 
-async function extrairKeywords(texto) {
+async function buscarSupabase(pergunta, limite = 4) {
     try {
-        const response = await anthropic.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 50,
-            system: 'Extraia 2-4 palavras-chave em português para buscar no Notion. Responda APENAS as palavras-chave separadas por espaço, sem pontuação.',
-            messages: [{ role: 'user', content: texto }]
+        const embedding = await gerarEmbedding(pergunta)
+        const { data, error } = await supabase.rpc('buscar_similar', {
+            query_embedding: embedding,
+            match_count: limite
         })
-        return response.content[0].text.trim()
+        if (error) throw new Error(error.message)
+        if (!data || data.length === 0) return ''
+        return data.map(d => d.conteudo).join('\n\n---\n\n')
     } catch (err) {
-        console.error('Erro ao extrair keywords:', err.message)
-        return texto
-    }
-}
-
-async function buscarNotion(query, paginas = 3) {
-    try {
-        const result = await notion.search({
-            query: query,
-            filter: { property: 'object', value: 'page' },
-            page_size: paginas
-        })
-
-        console.log('Notion retornou:', result.results.length, 'paginas')
-
-        if (result.results.length === 0) return ''
-
-        const textos = []
-        for (const page of result.results) {
-            console.log('Lendo pagina:', page.id)
-            const conteudo = await extrairTexto(page.id)
-            if (conteudo) textos.push(conteudo)
-        }
-
-        return textos.join('\n\n---\n\n')
-
-    } catch (err) {
-        console.error('Erro ao buscar no Notion:', err.message)
+        console.error('Erro busca Supabase:', err.message)
         return ''
     }
 }
@@ -137,13 +67,11 @@ Corretor: "Qual a entrada mínima?"
 Bellinha: "Antes de responder, qual empreendimento você está consultando? As condições variam por projeto. 😊"
 
 Corretor: "Tem desconto à vista?"
-Bellinha: "Sim! Temos desconto para pagamento à vista. Me diz qual empreendimento que te passo os detalhes. 😊 ⚠️ Valores sujeitos a alteração. Confirmar sempre no Gerlotes."
+Bellinha: "Sim! Temos desconto para pagamento à vista. Me diz qual empreendimento que te passo os detalhes. 😊 ⚠️ Valores sujeito a alteração. Confirmar sempre no Gerlotes."
 
 Contexto disponível:
 ${contexto}`,
-                messages: [
-                    { role: 'user', content: pergunta }
-                ]
+                messages: [{ role: 'user', content: pergunta }]
             }),
             new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout')), 25000)
@@ -171,65 +99,6 @@ async function enviarWhatsApp(numero, texto) {
     }
 }
 
-app.get('/search', async (req, res) => {
-    try {
-        const query = req.query.query
-        if (!query) return res.status(400).json({ erro: 'Envie um campo query' })
-        console.log('Buscando no Notion:', query)
-        const conteudo = await buscarNotion(query)
-        if (!conteudo) return res.status(404).json({ erro: 'Nenhuma pagina encontrada' })
-        return res.json({ conteudo })
-    } catch (err) {
-        console.error('Erro na busca:', err.message)
-        return res.status(500).json({ erro: err.message })
-    }
-})
-
-app.post('/webhook', async (req, res) => {
-    try {
-        const { pageId } = req.body
-        if (!pageId) return res.status(400).json({ erro: 'Envie pageId no body' })
-        const conteudo = await extrairTexto(pageId)
-        if (!conteudo) return res.status(404).json({ erro: 'Pagina sem conteudo' })
-        return res.json({ conteudo })
-    } catch (err) {
-        console.error('Erro no webhook:', err.message)
-        return res.status(500).json({ erro: err.message })
-    }
-})
-
-app.post('/perguntar', async (req, res) => {
-    res.setTimeout(28000, () => {
-        console.log('TIMEOUT na requisicao')
-        return res.status(504).json({ erro: 'Timeout na requisicao' })
-    })
-
-    try {
-        const { pergunta, query } = req.body
-        console.log('1. Pergunta recebida:', pergunta)
-
-        if (!pergunta) return res.status(400).json({ erro: 'Envie uma pergunta' })
-
-        const busca = query || pergunta
-        console.log('2. Extraindo keywords...')
-        const keywords = await extrairKeywords(busca)
-        console.log('3. Keywords:', keywords)
-
-        const contexto = await buscarNotion(keywords)
-        console.log('4. Contexto tamanho:', contexto.length)
-
-        console.log('5. Chamando Claude...')
-        const resposta = await perguntarClaude(contexto || 'Sem contexto disponivel.', pergunta)
-        console.log('6. Claude respondeu!')
-
-        return res.json({ resposta })
-
-    } catch (err) {
-        console.error('ERRO GERAL:', err.message)
-        return res.status(500).json({ erro: err.message })
-    }
-})
-
 app.post('/whatsapp', async (req, res) => {
     try {
         const msg = req.body
@@ -245,15 +114,9 @@ app.post('/whatsapp', async (req, res) => {
         console.log('WhatsApp - De:', numero)
         console.log('WhatsApp - Texto:', texto)
 
-        // Extrai keywords da pergunta
-        const keywords = await extrairKeywords(texto)
-        console.log('Keywords:', keywords)
-
-        // Busca nas 3 páginas mais relevantes
-        const contexto = await buscarNotion(keywords, 3)
+        const contexto = await buscarSupabase(texto)
         console.log('Contexto tamanho:', contexto.length)
 
-        // Responde com Claude
         const resposta = await perguntarClaude(contexto || 'Sem contexto disponivel.', texto)
         await enviarWhatsApp(numero, resposta)
 
@@ -265,8 +128,30 @@ app.post('/whatsapp', async (req, res) => {
     }
 })
 
+app.post('/perguntar', async (req, res) => {
+    res.setTimeout(28000, () => {
+        return res.status(504).json({ erro: 'Timeout na requisicao' })
+    })
+
+    try {
+        const { pergunta } = req.body
+        if (!pergunta) return res.status(400).json({ erro: 'Envie uma pergunta' })
+
+        console.log('Pergunta:', pergunta)
+        const contexto = await buscarSupabase(pergunta)
+        console.log('Contexto tamanho:', contexto.length)
+
+        const resposta = await perguntarClaude(contexto || 'Sem contexto disponivel.', pergunta)
+        return res.json({ resposta })
+
+    } catch (err) {
+        console.error('Erro:', err.message)
+        return res.status(500).json({ erro: err.message })
+    }
+})
+
 app.get('/', (req, res) => {
-    res.json({ status: 'Webhook rodando' })
+    res.json({ status: 'Bellinha rodando' })
 })
 
 process.on('uncaughtException', (err) => {
@@ -279,5 +164,5 @@ process.on('unhandledRejection', (reason) => {
 
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
-    console.log('Webhook rodando na porta ' + PORT)
+    console.log('Bellinha rodando na porta ' + PORT)
 })
