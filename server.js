@@ -49,18 +49,20 @@ async function carregarConversa(numero) {
         .eq('numero', numero)
         .single()
 
-    if (error || !data) return { nome: '', resumo: '', mensagens: [] }
+    if (error || !data) return { nome: '', tipo: '', resumo: '', mensagens: [] }
     return {
         nome: data.nome || '',
+        tipo: data.tipo || '',
         resumo: data.resumo || '',
         mensagens: data.mensagens || []
     }
 }
 
-async function salvarConversa(numero, nome, resumo, mensagens) {
+async function salvarConversa(numero, nome, tipo, resumo, mensagens) {
     await supabase.from('conversas').upsert({
         numero,
         nome,
+        tipo,
         resumo,
         mensagens,
         atualizado_em: new Date().toISOString()
@@ -158,24 +160,35 @@ app.post('/whatsapp', async (req, res) => {
         console.log('WhatsApp - De:', numero)
         console.log('WhatsApp - Texto:', texto)
 
-        let { nome, resumo, mensagens } = await carregarConversa(numero)
+        let { nome, tipo, resumo, mensagens } = await carregarConversa(numero)
 
         // Primeira mensagem: pede o nome
         if (!nome) {
             if (mensagens.length === 0) {
                 const boasVindas = 'Olá! 😊 Sou a Bellinha, assistente virtual da Bella Casa & Okada. Para começar, qual é o seu nome?'
                 mensagens.push({ role: 'assistant', content: boasVindas })
-                await salvarConversa(numero, '', '', mensagens)
+                await salvarConversa(numero, '', '', '', mensagens)
                 await enviarWhatsApp(numero, boasVindas)
                 return res.sendStatus(200)
             }
 
-            // Segunda mensagem: salva o nome
+            // Segunda mensagem: salva o nome e pergunta tipo
             nome = texto.trim()
             mensagens.push({ role: 'user', content: texto })
-            const saudacao = `Olá, ${nome}! 😊 Fico feliz em te atender. Em que posso te ajudar hoje?`
+            const perguntaTipo = `Prazer, ${nome}! 😊 Você é corretor de alguma imobiliária ou autônomo?`
+            mensagens.push({ role: 'assistant', content: perguntaTipo })
+            await salvarConversa(numero, nome, '', resumo, mensagens)
+            await enviarWhatsApp(numero, perguntaTipo)
+            return res.sendStatus(200)
+        }
+
+        // Terceira mensagem: salva o tipo
+        if (!tipo) {
+            tipo = texto.trim()
+            mensagens.push({ role: 'user', content: texto })
+            const saudacao = `Anotado! 😊 Pode perguntar, ${nome}, estou aqui para te ajudar!`
             mensagens.push({ role: 'assistant', content: saudacao })
-            await salvarConversa(numero, nome, resumo, mensagens)
+            await salvarConversa(numero, nome, tipo, resumo, mensagens)
             await enviarWhatsApp(numero, saudacao)
             return res.sendStatus(200)
         }
@@ -198,7 +211,7 @@ app.post('/whatsapp', async (req, res) => {
             mensagens = [] // limpa histórico após resumir
         }
 
-        await salvarConversa(numero, nome, resumo, mensagens)
+        await salvarConversa(numero, nome, tipo, resumo, mensagens)
         await enviarWhatsApp(numero, resposta)
 
         return res.sendStatus(200)
