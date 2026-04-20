@@ -443,6 +443,11 @@ app.post('/whatsapp', async (req, res) => {
             return res.sendStatus(200)
         }
 
+        // Registra mensagem para analytics por hora
+        supabase.from('mensagens_log').insert({ numero }).then(({ error }) => {
+            if (error) console.error('Erro log mensagem:', error.message)
+        })
+
         // Resolução de produto pendente (usuário respondeu à lista)
         if (!isGrupo && pendenteProduto) {
             const { candidatos, pergunta_original } = pendenteProduto
@@ -538,6 +543,16 @@ app.get('/analytics', async (req, res) => {
 
         const { data: faqs } = await supabase.from('faq_gerado').select('arquivo, criado_em').order('criado_em', { ascending: false }).limit(5)
 
+        let logQuery = supabase.from('mensagens_log').select('criado_em')
+        if (de) logQuery = logQuery.gte('criado_em', new Date(de).toISOString())
+        if (ate) logQuery = logQuery.lte('criado_em', new Date(ate + 'T23:59:59').toISOString())
+        const { data: logData } = await logQuery
+        const porHora = Array(24).fill(0)
+        for (const row of logData || []) {
+            const horaBRT = (new Date(row.criado_em).getUTCHours() - 3 + 24) % 24
+            porHora[horaBRT]++
+        }
+
         let tokenQuery = supabase.from('uso_tokens').select('tokens_entrada, tokens_saida')
         if (de) tokenQuery = tokenQuery.gte('criado_em', new Date(de).toISOString())
         if (ate) tokenQuery = tokenQuery.lte('criado_em', new Date(ate + 'T23:59:59').toISOString())
@@ -557,6 +572,7 @@ app.get('/analytics', async (req, res) => {
             por_produto: {},
             lacunas_pendentes: lacunas || [],
             faqs_gerados: faqs || [],
+            por_hora: porHora,
             tokens: {
                 entrada: totalEntrada,
                 saida: totalSaida,

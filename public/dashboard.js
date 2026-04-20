@@ -1,4 +1,5 @@
 let senhaAtual = sessionStorage.getItem('dash_senha') || ''
+let graficoHoras = null
 
 async function entrar(s) {
   s = s || document.getElementById('senha')?.value
@@ -79,6 +80,30 @@ function renderizar(d) {
   document.getElementById('lacunas-list').innerHTML = d.lacunas_pendentes.length
     ? d.lacunas_pendentes.map(l => `<div class="lacuna">❓ ${l.pergunta}</div>`).join('')
     : '<p style="color:#aaa;font-size:13px">Nenhuma lacuna pendente 🎉</p>'
+
+  if (d.por_hora) {
+    const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`)
+    if (graficoHoras) graficoHoras.destroy()
+    graficoHoras = new Chart(document.getElementById('grafico-horas'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Mensagens',
+          data: d.por_hora,
+          backgroundColor: '#4f46e5',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          x: { grid: { display: false } }
+        }
+      }
+    })
+  }
 
   if (d.tokens) {
     document.getElementById('tokens-entrada').textContent = d.tokens.entrada.toLocaleString('pt-BR')
