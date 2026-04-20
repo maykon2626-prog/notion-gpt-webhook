@@ -188,6 +188,7 @@ app.post('/whatsapp', async (req, res) => {
         console.log('WhatsApp - De:', numero)
         console.log('WhatsApp - Texto:', texto)
         console.log('WhatsApp - Imagem:', imagemPresente)
+        console.log('WhatsApp - Payload:', JSON.stringify(msg?.data?.message))
 
         let imagemBase64 = null
         if (imagemPresente) {
