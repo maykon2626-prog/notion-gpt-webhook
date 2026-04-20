@@ -49,22 +49,24 @@ async function carregarConversa(numero) {
         .eq('numero', numero)
         .single()
 
-    if (error || !data) return { nome: '', tipo: '', resumo: '', mensagens: [] }
+    if (error || !data) return { nome: '', tipo: '', resumo: '', mensagens: [], ativo: false }
     return {
         nome: data.nome || '',
         tipo: data.tipo || '',
         resumo: data.resumo || '',
-        mensagens: data.mensagens || []
+        mensagens: data.mensagens || [],
+        ativo: data.ativo || false
     }
 }
 
-async function salvarConversa(numero, nome, tipo, resumo, mensagens) {
+async function salvarConversa(numero, nome, tipo, resumo, mensagens, ativo = false) {
     const { error } = await supabase.from('conversas').upsert({
         numero,
         nome,
         tipo,
         resumo,
         mensagens,
+        ativo,
         atualizado_em: new Date().toISOString()
     }, { onConflict: 'numero' })
     if (error) console.error('Erro ao salvar conversa:', error.message)
@@ -186,21 +188,33 @@ app.post('/whatsapp', async (req, res) => {
 
         if ((!texto && !imagemPresente) || !numero || fromMe) return res.sendStatus(200)
 
-        // Em grupos: só responde se mencionar @bellinha ou bellinha
+        // Em grupos: controle de ativo + menção
         const mencionada = /bel{1,2}inha/i.test(texto)
+        const pedindoParar = /para(r|rar)?|encerr(ar?|a)|obrigad[ao]|tchau|até mais|valeu/i.test(texto)
+
         if (isGrupo) {
-            // Salva no histórico do grupo mesmo sem mencionar
-            const { nome: nomeGrupo, tipo: tipoGrupo, resumo: resumoGrupo, mensagens: mensagensGrupo } = await carregarConversa(numero)
+            const { nome: nomeGrupo, tipo: tipoGrupo, resumo: resumoGrupo, mensagens: mensagensGrupo, ativo: ativoGrupo } = await carregarConversa(numero)
             const remetente = msg?.data?.key?.participant || numero
             mensagensGrupo.push({ role: 'user', content: `[${remetente}]: ${texto}` })
+
+            let novoAtivo = ativoGrupo
+            if (mencionada) novoAtivo = true
+            if (ativoGrupo && pedindoParar) novoAtivo = false
+
             if (mensagensGrupo.length >= LIMITE_MENSAGENS) {
                 const novoResumo = await gerarResumo('Grupo', resumoGrupo, mensagensGrupo)
-                await salvarConversa(numero, nomeGrupo, tipoGrupo, novoResumo, [])
+                await salvarConversa(numero, nomeGrupo, tipoGrupo, novoResumo, [], novoAtivo)
             } else {
-                await salvarConversa(numero, nomeGrupo, tipoGrupo, resumoGrupo, mensagensGrupo)
+                await salvarConversa(numero, nomeGrupo, tipoGrupo, resumoGrupo, mensagensGrupo, novoAtivo)
             }
 
-            if (!mencionada) return res.sendStatus(200)
+            if (!novoAtivo) return res.sendStatus(200)
+
+            // Se estava ativo e pediu para parar, se despede
+            if (ativoGrupo && pedindoParar) {
+                await enviarWhatsApp(numero, 'De nada! 😊 Estarei aqui se precisar. Até mais!')
+                return res.sendStatus(200)
+            }
         }
 
         console.log('WhatsApp - De:', numero)
