@@ -173,8 +173,19 @@ app.post('/whatsapp', async (req, res) => {
                 return res.sendStatus(200)
             }
 
-            // Segunda mensagem: salva o nome e pergunta imobiliária
-            nome = texto.trim()
+            // Segunda mensagem: extrai o nome e pergunta imobiliária
+            const extracaoNome = await anthropic.messages.create({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 50,
+                system: 'Extraia apenas o primeiro nome da mensagem. Responda APENAS em JSON: {"nome": "..."}. Se não identificar um nome, use o texto original.',
+                messages: [{ role: 'user', content: texto }]
+            })
+            try {
+                const info = JSON.parse(extracaoNome.content[0].text)
+                nome = info.nome || texto.trim()
+            } catch {
+                nome = texto.trim()
+            }
             mensagens.push({ role: 'user', content: texto })
             const perguntaTipo = `Prazer, ${nome}! 😊 Você trabalha em alguma imobiliária? Se sim, qual? Ou é autônomo?`
             mensagens.push({ role: 'assistant', content: perguntaTipo })
