@@ -182,13 +182,30 @@ app.post('/whatsapp', async (req, res) => {
         const imagemPresente = !!msg?.data?.message?.imageMessage
         const numero = msg?.data?.key?.remoteJid
         const fromMe = msg?.data?.key?.fromMe
+        const isGrupo = numero?.endsWith('@g.us')
 
         if ((!texto && !imagemPresente) || !numero || fromMe) return res.sendStatus(200)
 
+        // Em grupos: só responde se mencionar @bellinha ou bellinha
+        const mencionada = /bellinha/i.test(texto)
+        if (isGrupo) {
+            // Salva no histórico do grupo mesmo sem mencionar
+            const { nome: nomeGrupo, tipo: tipoGrupo, resumo: resumoGrupo, mensagens: mensagensGrupo } = await carregarConversa(numero)
+            const remetente = msg?.data?.key?.participant || numero
+            mensagensGrupo.push({ role: 'user', content: `[${remetente}]: ${texto}` })
+            if (mensagensGrupo.length >= LIMITE_MENSAGENS) {
+                const novoResumo = await gerarResumo('Grupo', resumoGrupo, mensagensGrupo)
+                await salvarConversa(numero, nomeGrupo, tipoGrupo, novoResumo, [])
+            } else {
+                await salvarConversa(numero, nomeGrupo, tipoGrupo, resumoGrupo, mensagensGrupo)
+            }
+
+            if (!mencionada) return res.sendStatus(200)
+        }
+
         console.log('WhatsApp - De:', numero)
         console.log('WhatsApp - Texto:', texto)
-        console.log('WhatsApp - Imagem:', imagemPresente)
-        console.log('WhatsApp - Payload:', JSON.stringify(msg?.data?.message))
+        console.log('WhatsApp - Grupo:', isGrupo)
 
         let imagemBase64 = null
         if (imagemPresente) {
@@ -196,8 +213,13 @@ app.post('/whatsapp', async (req, res) => {
             console.log('Imagem baixada:', imagemBase64 ? 'sim' : 'falhou')
         }
 
+        // Remove a menção do texto antes de processar
+        const textoPuro = texto.replace(/@bellinha/gi, '').trim()
+
         let { nome, tipo, resumo, mensagens } = await carregarConversa(numero)
 
+        // Em grupos não faz onboarding
+        if (!isGrupo) {
         // Primeira mensagem: pede o nome
         if (!nome) {
             if (mensagens.length === 0) {
@@ -213,39 +235,40 @@ app.post('/whatsapp', async (req, res) => {
                 model: 'claude-sonnet-4-6',
                 max_tokens: 50,
                 system: 'Extraia apenas o primeiro nome da mensagem. Responda APENAS em JSON: {"nome": "..."}. Se não identificar um nome, use o texto original.',
-                messages: [{ role: 'user', content: texto }]
+                messages: [{ role: 'user', content: textoPuro }]
             })
             try {
                 const info = JSON.parse(extracaoNome.content[0].text)
-                nome = info.nome || texto.trim()
+                nome = info.nome || textoPuro
             } catch {
-                nome = texto.trim()
+                nome = textoPuro
             }
-            mensagens.push({ role: 'user', content: texto })
+            mensagens.push({ role: 'user', content: textoPuro })
             const perguntaTipo = `Prazer, ${nome}! 😊 Você trabalha em alguma imobiliária? Se sim, qual? Ou é autônomo?`
             mensagens.push({ role: 'assistant', content: perguntaTipo })
             await salvarConversa(numero, nome, '', resumo, mensagens)
             await enviarWhatsApp(numero, perguntaTipo)
             return res.sendStatus(200)
         }
+        } // fim do bloco !isGrupo
 
-        // Terceira mensagem: salva imobiliária/autônomo
-        if (!tipo) {
+        // Terceira mensagem: salva imobiliária/autônomo (apenas individual)
+        if (!isGrupo && !tipo) {
             const extracao = await anthropic.messages.create({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 50,
                 system: 'Extraia o vínculo profissional da mensagem. Responda APENAS em JSON: {"tipo": "..."}. Se for autônomo use "Autônomo". Se mencionar imobiliária, extraia apenas o nome dela. Se não identificar, use o texto original.',
-                messages: [{ role: 'user', content: texto }]
+                messages: [{ role: 'user', content: textoPuro }]
             })
 
             try {
                 const info = JSON.parse(extracao.content[0].text)
-                tipo = info.tipo || texto.trim()
+                tipo = info.tipo || textoPuro
             } catch {
-                tipo = texto.trim()
+                tipo = textoPuro
             }
 
-            mensagens.push({ role: 'user', content: texto })
+            mensagens.push({ role: 'user', content: textoPuro })
             const saudacao = `Anotado! 😊 ${tipo === 'Autônomo' ? 'Autônomo, ' : `Da ${tipo}, `}${nome}! Pode perguntar, estou aqui para te ajudar!`
             mensagens.push({ role: 'assistant', content: saudacao })
             await salvarConversa(numero, nome, tipo, resumo, mensagens)
@@ -254,14 +277,14 @@ app.post('/whatsapp', async (req, res) => {
         }
 
         // Busca contexto no Supabase
-        const contexto = await buscarSupabase(texto)
+        const contexto = await buscarSupabase(textoPuro)
         console.log('Contexto tamanho:', contexto.length)
 
         // Adiciona mensagem do usuário ao histórico
-        mensagens.push({ role: 'user', content: texto })
+        mensagens.push({ role: 'user', content: textoPuro })
 
         // Gera resposta com histórico
-        const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, texto, imagemBase64)
+        const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, textoPuro, imagemBase64)
         mensagens.push({ role: 'assistant', content: resposta })
 
         // Se atingiu 30 mensagens, gera resumo e limpa
