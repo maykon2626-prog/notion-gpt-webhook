@@ -2,9 +2,7 @@ const express = require('express')
 const router = express.Router()
 const crypto = require('crypto')
 const { enviarWhatsApp } = require('../lib/whatsapp')
-
-const NUMEROS_AUTORIZADOS = (process.env.DASHBOARD_NUMEROS || '45998388220')
-    .split(',').map(n => n.replace(/\D/g, '').trim())
+const { supabase } = require('../lib/supabase')
 
 // numero -> { codigo, expira }
 const codigosPendentes = new Map()
@@ -21,12 +19,22 @@ function paraWhatsApp(numero) {
     return '55' + numero + '@s.whatsapp.net'
 }
 
+async function usuarioAutorizado(numero) {
+    const { data } = await supabase
+        .from('dashboard_usuarios')
+        .select('id')
+        .eq('numero', numero)
+        .eq('ativo', true)
+        .single()
+    return !!data
+}
+
 router.post('/solicitar-codigo', async (req, res) => {
     const { numero } = req.body
     if (!numero) return res.status(400).json({ erro: 'Número obrigatório' })
 
     const num = normalizar(numero)
-    if (!NUMEROS_AUTORIZADOS.includes(num)) {
+    if (!await usuarioAutorizado(num)) {
         return res.status(403).json({ erro: 'Número não autorizado' })
     }
 
