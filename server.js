@@ -546,7 +546,7 @@ function renderizar(d) {
 
   const max = d.por_corretor[0]?.mensagens || 1
   document.getElementById('tb-corretores').innerHTML = d.por_corretor.slice(0, 10).map((c, i) =>
-    \`<tr><td>\${i+1}</td><td>\${c.nome}</td><td style="color:#888;font-size:13px">\${c.telefone}</td><td><span class="tag">\${c.tipo}</span></td><td>\${c.mensagens}</td></tr>\`
+    \`<tr><td>\${i+1}</td><td>\${c.nome}</td><td style="font-size:13px"><a href="https://wa.me/\${c.telefone}" target="_blank" style="color:#25d366;text-decoration:none">📱 \${c.telefone}</a></td><td><span class="tag">\${c.tipo}</span></td><td>\${c.mensagens}</td></tr>\`
   ).join('')
 
   const maxImob = Math.max(...d.por_imobiliaria.map(i => i.count), 1)
