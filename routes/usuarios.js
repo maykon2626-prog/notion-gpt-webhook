@@ -41,7 +41,7 @@ router.post('/', autenticar, async (req, res) => {
         .single()
     if (error) return res.status(500).json({ erro: error.message })
 
-    const dashUrl = process.env.DASHBOARD_URL || `https://${req.get('host')}/dashboard`
+    const dashUrl = process.env.DASHBOARD_URL || 'https://notion-gpt-webhook-production.up.railway.app/dashboard'
     const primeiroNome = (data.nome || 'olá').split(' ')[0]
     enviarWhatsApp(`55${num}@s.whatsapp.net`,
         `Olá, ${primeiroNome}! 👋\n\nVocê foi cadastrado no Dashboard de Atendimento da *Bella Casa & Okada*.\n\n🔗 Acesse: ${dashUrl}\n\nComo é seu primeiro acesso, clique em *"Esqueci minha senha"* na tela de login. Você receberá um código aqui no WhatsApp para criar sua senha.\n\nQualquer dúvida, fale com o administrador.`
