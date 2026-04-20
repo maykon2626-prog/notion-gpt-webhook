@@ -59,7 +59,7 @@ async function carregarConversa(numero) {
 }
 
 async function salvarConversa(numero, nome, tipo, resumo, mensagens) {
-    await supabase.from('conversas').upsert({
+    const { error } = await supabase.from('conversas').upsert({
         numero,
         nome,
         tipo,
@@ -67,6 +67,7 @@ async function salvarConversa(numero, nome, tipo, resumo, mensagens) {
         mensagens,
         atualizado_em: new Date().toISOString()
     }, { onConflict: 'numero' })
+    if (error) console.error('Erro ao salvar conversa:', error.message)
 }
 
 async function gerarResumo(nome, resumoAnterior, mensagens) {
