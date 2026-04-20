@@ -162,35 +162,44 @@ app.post('/whatsapp', async (req, res) => {
 
         let { nome, tipo, resumo, mensagens } = await carregarConversa(numero)
 
-        // Primeira mensagem: pede nome e imobiliária/autônomo
+        // Primeira mensagem: pede o nome
         if (!nome) {
             if (mensagens.length === 0) {
-                const boasVindas = 'Olá! 😊 Sou a Bellinha, assistente virtual da Bella Casa & Okada.\n\nAcho que a gente ainda não se conhece! Pode me dizer seu nome e se você trabalha em alguma imobiliária (qual?) ou é autônomo?'
+                const boasVindas = 'Olá! 😊 Sou a Bellinha, assistente virtual da Bella Casa & Okada.\n\nAcho que a gente ainda não se conhece! Qual é o seu nome?'
                 mensagens.push({ role: 'assistant', content: boasVindas })
                 await salvarConversa(numero, '', '', '', mensagens)
                 await enviarWhatsApp(numero, boasVindas)
                 return res.sendStatus(200)
             }
 
-            // Segunda mensagem: extrai nome e tipo com Claude
+            // Segunda mensagem: salva o nome e pergunta imobiliária
+            nome = texto.trim()
+            mensagens.push({ role: 'user', content: texto })
+            const perguntaTipo = `Prazer, ${nome}! 😊 Você trabalha em alguma imobiliária? Se sim, qual? Ou é autônomo?`
+            mensagens.push({ role: 'assistant', content: perguntaTipo })
+            await salvarConversa(numero, nome, '', resumo, mensagens)
+            await enviarWhatsApp(numero, perguntaTipo)
+            return res.sendStatus(200)
+        }
+
+        // Terceira mensagem: salva imobiliária/autônomo
+        if (!tipo) {
             const extracao = await anthropic.messages.create({
                 model: 'claude-sonnet-4-6',
-                max_tokens: 100,
-                system: 'Extraia o nome e o vínculo profissional da mensagem. Responda APENAS em JSON: {"nome": "...", "tipo": "..."}. Para tipo use: "Autônomo" ou o nome da imobiliária. Se não identificar, use string vazia.',
+                max_tokens: 50,
+                system: 'Extraia o vínculo profissional da mensagem. Responda APENAS em JSON: {"tipo": "..."}. Use "Autônomo" ou o nome da imobiliária. Se não identificar, use o texto original.',
                 messages: [{ role: 'user', content: texto }]
             })
 
             try {
                 const info = JSON.parse(extracao.content[0].text)
-                nome = info.nome || texto.trim()
-                tipo = info.tipo || ''
+                tipo = info.tipo || texto.trim()
             } catch {
-                nome = texto.trim()
-                tipo = ''
+                tipo = texto.trim()
             }
 
             mensagens.push({ role: 'user', content: texto })
-            const saudacao = `Prazer, ${nome}! 😊 ${tipo ? `Anotei que você é${tipo === 'Autônomo' ? ' autônomo' : ` da ${tipo}`}. ` : ''}Pode perguntar, estou aqui para te ajudar!`
+            const saudacao = `Anotado! 😊 ${tipo === 'Autônomo' ? 'Autônomo, ' : `Da ${tipo}, `}${nome}! Pode perguntar, estou aqui para te ajudar!`
             mensagens.push({ role: 'assistant', content: saudacao })
             await salvarConversa(numero, nome, tipo, resumo, mensagens)
             await enviarWhatsApp(numero, saudacao)
