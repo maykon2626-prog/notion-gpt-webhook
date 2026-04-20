@@ -187,7 +187,7 @@ app.post('/whatsapp', async (req, res) => {
         if ((!texto && !imagemPresente) || !numero || fromMe) return res.sendStatus(200)
 
         // Em grupos: só responde se mencionar @bellinha ou bellinha
-        const mencionada = /bellinha/i.test(texto)
+        const mencionada = /bel{1,2}inha/i.test(texto)
         if (isGrupo) {
             // Salva no histórico do grupo mesmo sem mencionar
             const { nome: nomeGrupo, tipo: tipoGrupo, resumo: resumoGrupo, mensagens: mensagensGrupo } = await carregarConversa(numero)
@@ -214,7 +214,7 @@ app.post('/whatsapp', async (req, res) => {
         }
 
         // Remove a menção do texto antes de processar
-        const textoPuro = texto.replace(/@bellinha/gi, '').trim()
+        const textoPuro = texto.replace(/@?bel{1,2}inha/gi, '').trim()
 
         let { nome, tipo, resumo, mensagens } = await carregarConversa(numero)
 
