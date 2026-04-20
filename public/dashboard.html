@@ -15,9 +15,24 @@
       <img class="logo-login" src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
     </div>
     <div class="login-form">
-      <p>Dashboard de Atendimento</p>
-      <input type="password" id="senha" placeholder="Senha" onkeydown="if(event.key==='Enter')entrar()">
-      <button onclick="entrar()">Entrar</button>
+
+      <!-- Passo 1: telefone -->
+      <div id="passo-telefone">
+        <p>Informe seu WhatsApp para receber o código</p>
+        <input type="tel" id="input-telefone" placeholder="(45) 99999-9999"
+          onkeydown="if(event.key==='Enter')solicitarCodigo()">
+        <button onclick="solicitarCodigo()" id="btn-enviar">Enviar código</button>
+      </div>
+
+      <!-- Passo 2: código -->
+      <div id="passo-codigo" style="display:none">
+        <p id="msg-codigo">Código enviado! Verifique seu WhatsApp.</p>
+        <input type="text" id="input-codigo" placeholder="000000" maxlength="6"
+          onkeydown="if(event.key==='Enter')verificarCodigo()" autocomplete="one-time-code">
+        <button onclick="verificarCodigo()" id="btn-verificar">Verificar</button>
+        <button class="limpar" onclick="voltarTelefone()" style="margin-top:8px">Usar outro número</button>
+      </div>
+
       <div id="erro"></div>
     </div>
   </div>

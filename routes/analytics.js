@@ -2,12 +2,15 @@ const express = require('express')
 const router = express.Router()
 
 const { supabase, carregarProdutos } = require('../lib/supabase')
+const { validarSessao } = require('./auth')
 
 const normalizar = str => str?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() || ''
 
 router.get('/', async (req, res) => {
+    const token = req.headers['x-token']
     const senha = req.headers['x-senha'] || req.query.senha
-    if (senha !== process.env.DASHBOARD_PASSWORD) return res.status(401).json({ erro: 'Senha incorreta' })
+    const autenticado = validarSessao(token) || (senha && senha === process.env.DASHBOARD_PASSWORD)
+    if (!autenticado) return res.status(401).json({ erro: 'Não autorizado' })
 
     try {
         const { de, ate } = req.query

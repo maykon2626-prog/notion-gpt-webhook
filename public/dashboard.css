@@ -72,6 +72,8 @@ body {
   font-size: 13px;
 }
 
+input[type=tel],
+input[type=text],
 input[type=password] {
   width: 100%;
   padding: 11px 14px;
@@ -86,6 +88,8 @@ input[type=password] {
   transition: border-color .2s;
 }
 
+input[type=tel]:focus,
+input[type=text]:focus,
 input[type=password]:focus { border-color: var(--accent); }
 
 button {

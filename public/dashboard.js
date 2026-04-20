@@ -1,24 +1,80 @@
-let senhaAtual = sessionStorage.getItem('dash_senha') || ''
+let tokenAtual = sessionStorage.getItem('dash_token') || ''
 let graficoHoras = null
 
-async function entrar(s) {
-  s = s || document.getElementById('senha')?.value
-  const r = await fetch('/analytics', { headers: { 'x-senha': s } })
+function mostrarErro(msg) {
+  document.getElementById('erro').textContent = msg
+}
+
+function setCarregando(btnId, carregando, textoOriginal) {
+  const btn = document.getElementById(btnId)
+  btn.disabled = carregando
+  btn.textContent = carregando ? 'Aguarde...' : textoOriginal
+}
+
+async function solicitarCodigo() {
+  const numero = document.getElementById('input-telefone').value.trim()
+  if (!numero) return mostrarErro('Informe o número de WhatsApp')
+  mostrarErro('')
+  setCarregando('btn-enviar', true, 'Enviar código')
+
+  const r = await fetch('/auth/solicitar-codigo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ numero })
+  })
+  const data = await r.json()
+  setCarregando('btn-enviar', false, 'Enviar código')
+
+  if (!r.ok) return mostrarErro(data.erro || 'Erro ao enviar código')
+
+  document.getElementById('passo-telefone').style.display = 'none'
+  document.getElementById('passo-codigo').style.display = 'block'
+  document.getElementById('input-codigo').focus()
+}
+
+async function verificarCodigo() {
+  const numero = document.getElementById('input-telefone').value.trim()
+  const codigo = document.getElementById('input-codigo').value.trim()
+  if (!codigo) return mostrarErro('Informe o código recebido')
+  mostrarErro('')
+  setCarregando('btn-verificar', true, 'Verificar')
+
+  const r = await fetch('/auth/verificar-codigo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ numero, codigo })
+  })
+  const data = await r.json()
+  setCarregando('btn-verificar', false, 'Verificar')
+
+  if (!r.ok) return mostrarErro(data.erro || 'Código inválido')
+
+  tokenAtual = data.token
+  sessionStorage.setItem('dash_token', tokenAtual)
+  await carregarDashboard()
+}
+
+function voltarTelefone() {
+  document.getElementById('passo-codigo').style.display = 'none'
+  document.getElementById('passo-telefone').style.display = 'block'
+  document.getElementById('input-codigo').value = ''
+  mostrarErro('')
+}
+
+async function carregarDashboard() {
+  const r = await fetch('/analytics', { headers: { 'x-token': tokenAtual } })
   if (r.status === 401) {
-    sessionStorage.removeItem('dash_senha')
-    senhaAtual = ''
-    if (document.getElementById('erro')) document.getElementById('erro').textContent = 'Senha incorreta'
+    sessionStorage.removeItem('dash_token')
+    tokenAtual = ''
     return
   }
-  senhaAtual = s
-  sessionStorage.setItem('dash_senha', s)
   const data = await r.json()
   document.getElementById('login').style.display = 'none'
   document.getElementById('app').style.display = 'block'
   renderizar(data)
 }
 
-if (senhaAtual) entrar(senhaAtual)
+if (tokenAtual) carregarDashboard()
 
 async function filtrar() {
   const de = document.getElementById('f-de').value
@@ -28,7 +84,7 @@ async function filtrar() {
   if (ate) params.append('ate', ate)
   const url = '/analytics' + (params.toString() ? '?' + params.toString() : '')
   document.getElementById('f-label').textContent = de || ate ? `Filtrando: ${de || 'início'} → ${ate || 'hoje'}` : ''
-  const r = await fetch(url, { headers: { 'x-senha': senhaAtual } })
+  const r = await fetch(url, { headers: { 'x-token': tokenAtual } })
   renderizar(await r.json())
 }
 
@@ -36,7 +92,7 @@ async function limparFiltro() {
   document.getElementById('f-de').value = ''
   document.getElementById('f-ate').value = ''
   document.getElementById('f-label').textContent = ''
-  const r = await fetch('/analytics', { headers: { 'x-senha': senhaAtual } })
+  const r = await fetch('/analytics', { headers: { 'x-token': tokenAtual } })
   renderizar(await r.json())
 }
 
@@ -61,7 +117,7 @@ function renderizar(d) {
     <div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:13px">
         <span>${i.label}</span>
-        <span style="color:#888">${i.corretores} corretor${i.corretores !== 1 ? 'es' : ''} · ${i.count} msgs</span>
+        <span style="color:#8C8880">${i.corretores} corretor${i.corretores !== 1 ? 'es' : ''} · ${i.count} msgs</span>
       </div>
       <div class="bar-wrap"><div class="bar" style="width:${Math.round(i.count / maxImob * 100)}%"></div></div>
     </div>
@@ -79,7 +135,7 @@ function renderizar(d) {
 
   document.getElementById('lacunas-list').innerHTML = d.lacunas_pendentes.length
     ? d.lacunas_pendentes.map(l => `<div class="lacuna">❓ ${l.pergunta}</div>`).join('')
-    : '<p style="color:#aaa;font-size:13px">Nenhuma lacuna pendente 🎉</p>'
+    : '<p style="color:#8C8880;font-size:13px">Nenhuma lacuna pendente 🎉</p>'
 
   if (d.por_hora) {
     const labels = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}h`)
