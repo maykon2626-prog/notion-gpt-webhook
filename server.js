@@ -89,7 +89,7 @@ async function gerarResumo(nome, resumoAnterior, mensagens) {
     }
 }
 
-async function perguntarClaude(nome, resumo, historico, contexto, pergunta) {
+async function perguntarClaude(nome, resumo, historico, contexto, pergunta, imagemBase64 = null) {
     try {
         const historicoFormatado = historico.map(m => ({
             role: m.role,
@@ -119,7 +119,13 @@ ${contexto || 'Sem contexto disponível.'}`
                 model: 'claude-sonnet-4-6',
                 max_tokens: 512,
                 system,
-                messages: [...historicoFormatado, { role: 'user', content: pergunta }]
+                messages: [...historicoFormatado, {
+                    role: 'user',
+                    content: imagemBase64 ? [
+                        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imagemBase64 } },
+                        { type: 'text', text: pergunta || 'O que você vê nessa imagem? Relate ao contexto dos empreendimentos se relevante.' }
+                    ] : pergunta
+                }]
             }),
             new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout')), 25000)
@@ -129,6 +135,24 @@ ${contexto || 'Sem contexto disponível.'}`
     } catch (err) {
         console.error('Erro no Claude:', err.message)
         return 'Não consegui processar sua pergunta agora. Tente novamente.'
+    }
+}
+
+async function baixarImagemBase64(msg) {
+    try {
+        const response = await fetch(`${process.env.EVOLUTION_URL}/chat/getBase64FromMediaMessage/${process.env.EVOLUTION_INSTANCE}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': process.env.EVOLUTION_KEY
+            },
+            body: JSON.stringify({ message: { key: msg.data.key, message: msg.data.message } })
+        })
+        const data = await response.json()
+        return data.base64 || null
+    } catch (err) {
+        console.error('Erro ao baixar imagem:', err.message)
+        return null
     }
 }
 
@@ -152,15 +176,24 @@ app.post('/whatsapp', async (req, res) => {
         const msg = req.body
 
         const texto = msg?.data?.message?.conversation ||
-                      msg?.data?.message?.extendedTextMessage?.text
+                      msg?.data?.message?.extendedTextMessage?.text ||
+                      msg?.data?.message?.imageMessage?.caption || ''
 
+        const imagemPresente = !!msg?.data?.message?.imageMessage
         const numero = msg?.data?.key?.remoteJid
         const fromMe = msg?.data?.key?.fromMe
 
-        if (!texto || !numero || fromMe) return res.sendStatus(200)
+        if ((!texto && !imagemPresente) || !numero || fromMe) return res.sendStatus(200)
 
         console.log('WhatsApp - De:', numero)
         console.log('WhatsApp - Texto:', texto)
+        console.log('WhatsApp - Imagem:', imagemPresente)
+
+        let imagemBase64 = null
+        if (imagemPresente) {
+            imagemBase64 = await baixarImagemBase64(msg)
+            console.log('Imagem baixada:', imagemBase64 ? 'sim' : 'falhou')
+        }
 
         let { nome, tipo, resumo, mensagens } = await carregarConversa(numero)
 
@@ -227,7 +260,7 @@ app.post('/whatsapp', async (req, res) => {
         mensagens.push({ role: 'user', content: texto })
 
         // Gera resposta com histórico
-        const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, texto)
+        const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, texto, imagemBase64)
         mensagens.push({ role: 'assistant', content: resposta })
 
         // Se atingiu 30 mensagens, gera resumo e limpa
