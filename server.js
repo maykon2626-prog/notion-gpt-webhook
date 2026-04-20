@@ -401,6 +401,8 @@ app.get('/analytics', async (req, res) => {
         const { data: lacunas } = await supabase.from('lacunas').select('pergunta, criado_em').eq('revisado', false).order('criado_em', { ascending: false }).limit(10)
         const { data: faqs } = await supabase.from('faq_gerado').select('arquivo, criado_em').order('criado_em', { ascending: false }).limit(5)
 
+        const normalizar = str => str?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() || ''
+
         const stats = {
             total_corretores: conversas?.length || 0,
             total_mensagens: 0,
@@ -422,8 +424,10 @@ app.get('/analytics', async (req, res) => {
                 stats.por_corretor.push({ nome: conv.nome, tipo: conv.tipo || 'Autônomo', mensagens: countUser })
             }
 
-            const imob = conv.tipo || 'Autônomo'
-            stats.por_imobiliaria[imob] = (stats.por_imobiliaria[imob] || 0) + countUser
+            const imob = conv.tipo?.trim() || 'Autônomo'
+            const imobKey = normalizar(imob)
+            const imobLabel = stats.por_imobiliaria[imobKey]?.label || imob
+            stats.por_imobiliaria[imobKey] = { label: imobLabel, count: (stats.por_imobiliaria[imobKey]?.count || 0) + countUser }
 
             for (const m of msgs) {
                 if (m.role === 'user') {
@@ -437,6 +441,10 @@ app.get('/analytics', async (req, res) => {
         }
 
         stats.por_corretor.sort((a, b) => b.mensagens - a.mensagens)
+
+        // Converte por_imobiliaria para array ordenado
+        stats.por_imobiliaria = Object.values(stats.por_imobiliaria)
+            .sort((a, b) => b.count - a.count)
 
         return res.json(stats)
     } catch (err) {
@@ -540,12 +548,11 @@ function renderizar(d) {
     \`<tr><td>\${i+1}</td><td>\${c.nome}</td><td><span class="tag">\${c.tipo}</span></td><td>\${c.mensagens}</td></tr>\`
   ).join('')
 
-  const maxImob = Math.max(...Object.values(d.por_imobiliaria), 1)
-  document.getElementById('imob-list').innerHTML = Object.entries(d.por_imobiliaria)
-    .sort((a,b) => b[1]-a[1]).map(([k,v]) =>
-      \`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>\${k}</span><span>\${v}</span></div>
-      <div class="bar-wrap"><div class="bar" style="width:\${Math.round(v/maxImob*100)}%"></div></div></div>\`
-    ).join('')
+  const maxImob = Math.max(...d.por_imobiliaria.map(i => i.count), 1)
+  document.getElementById('imob-list').innerHTML = d.por_imobiliaria.map(i =>
+    \`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>\${i.label}</span><span>\${i.count}</span></div>
+    <div class="bar-wrap"><div class="bar" style="width:\${Math.round(i.count/maxImob*100)}%"></div></div></div>\`
+  ).join('')
 
   const maxProd = Math.max(...Object.values(d.por_produto), 1)
   document.getElementById('prod-list').innerHTML = Object.entries(d.por_produto)
