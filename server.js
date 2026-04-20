@@ -49,13 +49,14 @@ async function carregarConversa(numero) {
         .eq('numero', numero)
         .single()
 
-    if (error || !data) return { nome: '', tipo: '', resumo: '', mensagens: [], ativo: false }
+    if (error || !data) return { nome: '', tipo: '', resumo: '', mensagens: [], ativo: false, pendente_grupo: '' }
     return {
         nome: data.nome || '',
         tipo: data.tipo || '',
         resumo: data.resumo || '',
         mensagens: data.mensagens || [],
-        ativo: data.ativo || false
+        ativo: data.ativo || false,
+        pendente_grupo: data.pendente_grupo || ''
     }
 }
 
@@ -196,24 +197,48 @@ app.post('/whatsapp', async (req, res) => {
             const { nome: nomeGrupo, tipo: tipoGrupo, resumo: resumoGrupo, mensagens: mensagensGrupo, ativo: ativoGrupo } = await carregarConversa(numero)
             const remetente = msg?.data?.key?.participant || numero
 
-            // Tenta identificar o remetente pelo número na tabela conversas
+            // Carrega dados do remetente
             const { data: dadosRemetente } = await supabase
                 .from('conversas')
-                .select('nome, tipo')
+                .select('nome, tipo, pendente_grupo')
                 .eq('numero', remetente)
                 .single()
-            const nomeRemetente = dadosRemetente?.nome || remetente
-            const tipoRemetente = dadosRemetente?.tipo || ''
-            const labelRemetente = tipoRemetente ? `${nomeRemetente} (${tipoRemetente})` : nomeRemetente
 
-            console.log('GRUPO - Remetente identificado:', labelRemetente)
+            const nomeRemetente = dadosRemetente?.nome || ''
+            const tipoRemetente = dadosRemetente?.tipo || ''
+            const pendente = dadosRemetente?.pendente_grupo || ''
+
+            // Se estava aguardando nome deste remetente neste grupo
+            if (pendente === numero) {
+                const extracaoNome = await anthropic.messages.create({
+                    model: 'claude-sonnet-4-6',
+                    max_tokens: 50,
+                    system: 'Extraia apenas o primeiro nome da mensagem. Responda APENAS em JSON: {"nome": "..."}. Se não identificar um nome, use o texto original.',
+                    messages: [{ role: 'user', content: texto }]
+                })
+                let nomeSalvo = texto.trim()
+                try {
+                    const info = JSON.parse(extracaoNome.content[0].text)
+                    nomeSalvo = info.nome || texto.trim()
+                } catch {}
+
+                await supabase.from('conversas').upsert({
+                    numero: remetente, nome: nomeSalvo, pendente_grupo: '', atualizado_em: new Date().toISOString()
+                }, { onConflict: 'numero' })
+
+                await enviarWhatsApp(numero, `Prazer, ${nomeSalvo}! 😊 Como posso te ajudar?`)
+                return res.sendStatus(200)
+            }
+
+            const labelRemetente = nomeRemetente
+                ? (tipoRemetente ? `${nomeRemetente} (${tipoRemetente})` : nomeRemetente)
+                : remetente
+
             mensagensGrupo.push({ role: 'user', content: `[${labelRemetente}]: ${texto}` })
 
             let novoAtivo = ativoGrupo
             if (mencionada) novoAtivo = true
             if (ativoGrupo && pedindoParar) novoAtivo = false
-
-            console.log('GRUPO - ativoAntes:', ativoGrupo, '| mencionada:', mencionada, '| parando:', pedindoParar, '| novoAtivo:', novoAtivo)
 
             if (mensagensGrupo.length >= LIMITE_MENSAGENS) {
                 const novoResumo = await gerarResumo('Grupo', resumoGrupo, mensagensGrupo)
@@ -224,9 +249,17 @@ app.post('/whatsapp', async (req, res) => {
 
             if (!novoAtivo) return res.sendStatus(200)
 
-            // Se estava ativo e pediu para parar, se despede
             if (ativoGrupo && pedindoParar) {
                 await enviarWhatsApp(numero, 'De nada! 😊 Estarei aqui se precisar. Até mais!')
+                return res.sendStatus(200)
+            }
+
+            // Se não conhece o remetente e foi mencionada, pede o nome
+            if (mencionada && !nomeRemetente) {
+                await supabase.from('conversas').upsert({
+                    numero: remetente, nome: '', pendente_grupo: numero, atualizado_em: new Date().toISOString()
+                }, { onConflict: 'numero' })
+                await enviarWhatsApp(numero, 'Olá! 😊 Ainda não nos conhecemos. Qual é o seu nome?')
                 return res.sendStatus(200)
             }
         }
