@@ -1,8 +1,10 @@
 let tokenAtual = sessionStorage.getItem('dash_token') || ''
 let graficoHoras = null
 
-function mostrarErro(msg) {
-  document.getElementById('erro').textContent = msg
+// ── Helpers ──────────────────────────────────────
+
+function mostrarErro(id, msg) {
+  document.getElementById(id).textContent = msg
 }
 
 function setCarregando(btnId, carregando, textoOriginal) {
@@ -11,12 +13,32 @@ function setCarregando(btnId, carregando, textoOriginal) {
   btn.textContent = carregando ? 'Aguarde...' : textoOriginal
 }
 
+function api(path, opts = {}) {
+  return fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'x-token': tokenAtual, ...(opts.headers || {}) }
+  })
+}
+
+// ── Navegação ─────────────────────────────────────
+
+function navegarPara(pagina) {
+  document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'))
+  document.querySelector(`[data-pagina="${pagina}"]`).classList.add('active')
+  document.querySelectorAll('#conteudo > div[id^="pagina-"]').forEach(el => el.style.display = 'none')
+  document.getElementById(`pagina-${pagina}`).style.display = 'block'
+  if (pagina === 'usuarios') carregarUsuarios()
+}
+
+// ── Login ─────────────────────────────────────────
+
+function mostrarErroLogin(msg) { mostrarErro('erro', msg) }
+
 async function solicitarCodigo() {
   const numero = document.getElementById('input-telefone').value.trim()
-  if (!numero) return mostrarErro('Informe o número de WhatsApp')
-  mostrarErro('')
+  if (!numero) return mostrarErroLogin('Informe o número de WhatsApp')
+  mostrarErroLogin('')
   setCarregando('btn-enviar', true, 'Enviar código')
-
   const r = await fetch('/auth/solicitar-codigo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -24,9 +46,7 @@ async function solicitarCodigo() {
   })
   const data = await r.json()
   setCarregando('btn-enviar', false, 'Enviar código')
-
-  if (!r.ok) return mostrarErro(data.erro || 'Erro ao enviar código')
-
+  if (!r.ok) return mostrarErroLogin(data.erro || 'Erro ao enviar código')
   document.getElementById('passo-telefone').style.display = 'none'
   document.getElementById('passo-codigo').style.display = 'block'
   document.getElementById('input-codigo').focus()
@@ -35,10 +55,9 @@ async function solicitarCodigo() {
 async function verificarCodigo() {
   const numero = document.getElementById('input-telefone').value.trim()
   const codigo = document.getElementById('input-codigo').value.trim()
-  if (!codigo) return mostrarErro('Informe o código recebido')
-  mostrarErro('')
+  if (!codigo) return mostrarErroLogin('Informe o código recebido')
+  mostrarErroLogin('')
   setCarregando('btn-verificar', true, 'Verificar')
-
   const r = await fetch('/auth/verificar-codigo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -46,35 +65,31 @@ async function verificarCodigo() {
   })
   const data = await r.json()
   setCarregando('btn-verificar', false, 'Verificar')
-
-  if (!r.ok) return mostrarErro(data.erro || 'Código inválido')
-
+  if (!r.ok) return mostrarErroLogin(data.erro || 'Código inválido')
   tokenAtual = data.token
   sessionStorage.setItem('dash_token', tokenAtual)
-  await carregarDashboard()
+  await abrirApp()
 }
 
 function voltarTelefone() {
   document.getElementById('passo-codigo').style.display = 'none'
   document.getElementById('passo-telefone').style.display = 'block'
   document.getElementById('input-codigo').value = ''
-  mostrarErro('')
+  mostrarErroLogin('')
 }
 
-async function carregarDashboard() {
-  const r = await fetch('/analytics', { headers: { 'x-token': tokenAtual } })
-  if (r.status === 401) {
-    sessionStorage.removeItem('dash_token')
-    tokenAtual = ''
-    return
-  }
+async function abrirApp() {
+  const r = await api('/analytics')
+  if (r.status === 401) { sessionStorage.removeItem('dash_token'); tokenAtual = ''; return }
   const data = await r.json()
   document.getElementById('login').style.display = 'none'
-  document.getElementById('app').style.display = 'block'
+  document.getElementById('app').style.display = 'flex'
   renderizar(data)
 }
 
-if (tokenAtual) carregarDashboard()
+if (tokenAtual) abrirApp()
+
+// ── Analytics ─────────────────────────────────────
 
 async function filtrar() {
   const de = document.getElementById('f-de').value
@@ -84,16 +99,14 @@ async function filtrar() {
   if (ate) params.append('ate', ate)
   const url = '/analytics' + (params.toString() ? '?' + params.toString() : '')
   document.getElementById('f-label').textContent = de || ate ? `Filtrando: ${de || 'início'} → ${ate || 'hoje'}` : ''
-  const r = await fetch(url, { headers: { 'x-token': tokenAtual } })
-  renderizar(await r.json())
+  renderizar(await (await api(url)).json())
 }
 
 async function limparFiltro() {
   document.getElementById('f-de').value = ''
   document.getElementById('f-ate').value = ''
   document.getElementById('f-label').textContent = ''
-  const r = await fetch('/analytics', { headers: { 'x-token': tokenAtual } })
-  renderizar(await r.json())
+  renderizar(await (await api('/analytics')).json())
 }
 
 function renderizar(d) {
@@ -144,12 +157,7 @@ function renderizar(d) {
       type: 'bar',
       data: {
         labels,
-        datasets: [{
-          label: 'Mensagens',
-          data: d.por_hora,
-          backgroundColor: '#7A8C5F',
-          borderRadius: 4
-        }]
+        datasets: [{ label: 'Mensagens', data: d.por_hora, backgroundColor: '#7A8C5F', borderRadius: 4 }]
       },
       options: {
         plugins: { legend: { display: false } },
@@ -170,4 +178,45 @@ function renderizar(d) {
       document.getElementById('card-saldo').style.display = 'block'
     }
   }
+}
+
+// ── Usuários ──────────────────────────────────────
+
+async function carregarUsuarios() {
+  const r = await api('/usuarios')
+  if (!r.ok) return
+  const usuarios = await r.json()
+  document.getElementById('tb-usuarios').innerHTML = usuarios.map(u => `
+    <tr>
+      <td>${u.nome || '<span style="color:#8C8880">—</span>'}</td>
+      <td>📱 ${u.numero}</td>
+      <td style="color:#8C8880;font-size:13px">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>
+      <td><button class="btn-danger" onclick="removerUsuario('${u.numero}', this)">Remover</button></td>
+    </tr>
+  `).join('')
+}
+
+async function adicionarUsuario() {
+  const nome = document.getElementById('novo-nome').value.trim()
+  const numero = document.getElementById('novo-numero').value.trim()
+  mostrarErro('erro-usuarios', '')
+  if (!numero) return mostrarErro('erro-usuarios', 'Informe o número')
+  const r = await api('/usuarios', {
+    method: 'POST',
+    body: JSON.stringify({ nome, numero })
+  })
+  const data = await r.json()
+  if (!r.ok) return mostrarErro('erro-usuarios', data.erro || 'Erro ao adicionar')
+  document.getElementById('novo-nome').value = ''
+  document.getElementById('novo-numero').value = ''
+  carregarUsuarios()
+}
+
+async function removerUsuario(numero, btn) {
+  if (!confirm(`Remover o usuário ${numero}?`)) return
+  btn.disabled = true
+  btn.textContent = '...'
+  const r = await api(`/usuarios/${numero}`, { method: 'DELETE' })
+  if (!r.ok) { btn.disabled = false; btn.textContent = 'Remover'; return }
+  carregarUsuarios()
 }

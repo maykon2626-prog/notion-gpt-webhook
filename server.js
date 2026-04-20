@@ -11,6 +11,7 @@ app.use('/whatsapp', require('./routes/webhook'))
 app.use('/analytics', require('./routes/analytics'))
 app.use('/gerar-faq', require('./routes/faq'))
 app.use('/auth', require('./routes/auth').router)
+app.use('/usuarios', require('./routes/usuarios'))
 
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'))

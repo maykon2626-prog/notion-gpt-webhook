@@ -12,6 +12,8 @@
   --creme:        #E8DDD0;
   --creme-text:   #5C5040;
   --navy:         #062c4c;
+  --navy-hover:   #0a3d69;
+  --sidebar-w:    220px;
   --shadow:       0 1px 8px rgba(44, 44, 42, 0.06);
 }
 
@@ -59,18 +61,15 @@ body {
   padding: 28px 40px 36px;
 }
 
-#login-box h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-
 #login-box p {
   color: var(--text-muted);
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   font-size: 13px;
 }
+
+#erro { color: #b94a48; font-size: 13px; margin-top: 10px; }
+
+/* ── Inputs ─────────────────────────────────────── */
 
 input[type=tel],
 input[type=text],
@@ -92,6 +91,8 @@ input[type=tel]:focus,
 input[type=text]:focus,
 input[type=password]:focus { border-color: var(--accent); }
 
+/* ── Buttons ────────────────────────────────────── */
+
 button {
   width: 100%;
   padding: 11px;
@@ -107,42 +108,110 @@ button {
 }
 
 button:hover { background: var(--accent-dark); }
+button:disabled { opacity: .6; cursor: not-allowed; }
 
-#erro { color: #b94a48; font-size: 13px; margin-top: 10px; }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  margin-top: 8px;
+}
+.btn-ghost:hover { background: var(--bg); color: var(--text); }
 
-/* ── App shell ──────────────────────────────────── */
+.btn-danger {
+  background: transparent;
+  color: #b94a48;
+  border: 1px solid #e8c5c4;
+  width: auto;
+  padding: 5px 12px;
+  font-size: 13px;
+}
+.btn-danger:hover { background: #fdf2f2; }
+
+/* ── Sidebar ────────────────────────────────────── */
 
 #app {
   display: none;
-  padding: 32px 24px;
-  max-width: 1140px;
-  margin: 0 auto;
+  min-height: 100vh;
 }
 
-.app-header {
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.sidebar-logo {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-logo img {
+  width: 100%;
+  max-width: 160px;
+  display: block;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 16px 0;
+  flex: 1;
+}
+
+.menu-item {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 32px;
-  background: var(--navy);
-  padding: 20px 28px;
-  border-radius: 14px;
+  gap: 12px;
+  padding: 12px 20px;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background .15s, color .15s;
+  border-left: 3px solid transparent;
 }
 
-.app-header img {
-  height: 40px;
+.menu-item:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.9);
 }
 
-.app-header h1 {
-  font-size: 20px;
+.menu-item.active {
+  color: #ffffff;
+  background: rgba(255,255,255,0.1);
+  border-left-color: var(--accent);
+}
+
+.menu-icon { font-size: 16px; }
+
+/* ── Main content ───────────────────────────────── */
+
+#conteudo {
+  margin-left: var(--sidebar-w);
+  padding: 32px 28px;
+  max-width: calc(var(--sidebar-w) + 1100px);
+  min-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 28px;
+}
+
+.page-header h1 {
+  font-size: 22px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--text);
 }
 
-.app-header .subtitle {
+.page-header .page-sub {
   font-size: 13px;
-  color: rgba(255,255,255,0.55);
-  font-weight: 400;
+  color: var(--text-muted);
 }
 
 /* ── Filtros ─────────────────────────────────────── */
@@ -177,26 +246,18 @@ button:hover { background: var(--accent-dark); }
   color: var(--text);
   background: var(--bg);
   outline: none;
+  margin-bottom: 0;
+  width: auto;
   transition: border-color .2s;
 }
 
 .filtros input[type=date]:focus { border-color: var(--accent); }
 
-.filtros button {
+.filtros button, .filtros .btn-ghost {
   width: auto;
   padding: 7px 20px;
   font-size: 13px;
-}
-
-.filtros button.limpar {
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-.filtros button.limpar:hover {
-  background: var(--bg);
-  color: var(--text);
+  margin-top: 0;
 }
 
 #f-label { font-size: 12px; color: var(--text-muted); }
@@ -253,12 +314,34 @@ button:hover { background: var(--accent-dark); }
 }
 
 .section h2 {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .06em;
   color: var(--text-muted);
   margin-bottom: 18px;
+}
+
+/* ── Form inline ────────────────────────────────── */
+
+.form-inline {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.form-inline input {
+  margin-bottom: 0;
+  width: auto;
+  flex: 1;
+  min-width: 140px;
+}
+
+.form-inline button {
+  width: auto;
+  padding: 11px 24px;
+  flex-shrink: 0;
 }
 
 /* ── Table ──────────────────────────────────────── */
