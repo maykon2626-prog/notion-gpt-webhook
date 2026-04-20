@@ -10,6 +10,8 @@ app.use(express.json())
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
 
+const LIMITE_MENSAGENS = 30
+
 async function gerarEmbedding(texto) {
     const response = await fetch('https://api.voyageai.com/v1/embeddings', {
         method: 'POST',
@@ -40,13 +42,58 @@ async function buscarSupabase(pergunta, limite = 4) {
     }
 }
 
-async function perguntarClaude(contexto, pergunta) {
+async function carregarConversa(numero) {
+    const { data, error } = await supabase
+        .from('conversas')
+        .select('*')
+        .eq('numero', numero)
+        .single()
+
+    if (error || !data) return { nome: '', resumo: '', mensagens: [] }
+    return {
+        nome: data.nome || '',
+        resumo: data.resumo || '',
+        mensagens: data.mensagens || []
+    }
+}
+
+async function salvarConversa(numero, nome, resumo, mensagens) {
+    await supabase.from('conversas').upsert({
+        numero,
+        nome,
+        resumo,
+        mensagens,
+        atualizado_em: new Date().toISOString()
+    }, { onConflict: 'numero' })
+}
+
+async function gerarResumo(nome, resumoAnterior, mensagens) {
     try {
-        const response = await Promise.race([
-            anthropic.messages.create({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 512,
-                system: `Você é Bellinha, assistente virtual da Bella Casa & Okada.
+        const historico = mensagens.map(m => `${m.role === 'user' ? 'Corretor' : 'Bellinha'}: ${m.content}`).join('\n')
+        const response = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 300,
+            system: 'Você resume conversas de atendimento imobiliário de forma concisa. Foque em: empreendimentos consultados, dúvidas levantadas e informações importantes trocadas.',
+            messages: [{
+                role: 'user',
+                content: `Corretor: ${nome}\n\nResumo anterior: ${resumoAnterior || 'nenhum'}\n\nConversa:\n${historico}\n\nGere um resumo atualizado em até 3 frases.`
+            }]
+        })
+        return response.content[0].text
+    } catch (err) {
+        console.error('Erro ao gerar resumo:', err.message)
+        return resumoAnterior
+    }
+}
+
+async function perguntarClaude(nome, resumo, historico, contexto, pergunta) {
+    try {
+        const historicoFormatado = historico.map(m => ({
+            role: m.role,
+            content: m.content
+        }))
+
+        const system = `Você é Bellinha, assistente virtual da Bella Casa & Okada.
 Responda sempre no feminino e use primeira pessoa do plural ao falar da empresa.
 Seja profissional, próxima e direta. Use emojis com moderação.
 Responda apenas com base no contexto fornecido.
@@ -57,21 +104,18 @@ REGRAS:
 - Inclua sempre o aviso do Gerlotes ao informar valores
 - Nunca misture dados de empreendimentos diferentes
 - Respostas curtas e objetivas
+- Chame o corretor pelo nome (${nome || 'corretor'}) quando apropriado
 
-EXEMPLOS DE RESPOSTAS IDEAIS:
+${resumo ? `RESUMO DO HISTÓRICO:\n${resumo}\n` : ''}
+CONTEXTO DOS EMPREENDIMENTOS:
+${contexto || 'Sem contexto disponível.'}`
 
-Corretor: "Aceita FGTS?"
-Bellinha: "Sim! Aceitamos FGTS para entrada ou amortização. O cliente precisa verificar o saldo antes de confirmar. Sobre qual empreendimento você está perguntando? 😊"
-
-Corretor: "Qual a entrada mínima?"
-Bellinha: "Antes de responder, qual empreendimento você está consultando? As condições variam por projeto. 😊"
-
-Corretor: "Tem desconto à vista?"
-Bellinha: "Sim! Temos desconto para pagamento à vista. Me diz qual empreendimento que te passo os detalhes. 😊 ⚠️ Valores sujeito a alteração. Confirmar sempre no Gerlotes."
-
-Contexto disponível:
-${contexto}`,
-                messages: [{ role: 'user', content: pergunta }]
+        const response = await Promise.race([
+            anthropic.messages.create({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 512,
+                system,
+                messages: [...historicoFormatado, { role: 'user', content: pergunta }]
             }),
             new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout')), 25000)
@@ -114,10 +158,47 @@ app.post('/whatsapp', async (req, res) => {
         console.log('WhatsApp - De:', numero)
         console.log('WhatsApp - Texto:', texto)
 
+        let { nome, resumo, mensagens } = await carregarConversa(numero)
+
+        // Primeira mensagem: pede o nome
+        if (!nome) {
+            if (mensagens.length === 0) {
+                const boasVindas = 'Olá! 😊 Sou a Bellinha, assistente virtual da Bella Casa & Okada. Para começar, qual é o seu nome?'
+                mensagens.push({ role: 'assistant', content: boasVindas })
+                await salvarConversa(numero, '', '', mensagens)
+                await enviarWhatsApp(numero, boasVindas)
+                return res.sendStatus(200)
+            }
+
+            // Segunda mensagem: salva o nome
+            nome = texto.trim()
+            mensagens.push({ role: 'user', content: texto })
+            const saudacao = `Olá, ${nome}! 😊 Fico feliz em te atender. Em que posso te ajudar hoje?`
+            mensagens.push({ role: 'assistant', content: saudacao })
+            await salvarConversa(numero, nome, resumo, mensagens)
+            await enviarWhatsApp(numero, saudacao)
+            return res.sendStatus(200)
+        }
+
+        // Busca contexto no Supabase
         const contexto = await buscarSupabase(texto)
         console.log('Contexto tamanho:', contexto.length)
 
-        const resposta = await perguntarClaude(contexto || 'Sem contexto disponivel.', texto)
+        // Adiciona mensagem do usuário ao histórico
+        mensagens.push({ role: 'user', content: texto })
+
+        // Gera resposta com histórico
+        const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, texto)
+        mensagens.push({ role: 'assistant', content: resposta })
+
+        // Se atingiu 30 mensagens, gera resumo e limpa
+        if (mensagens.length >= LIMITE_MENSAGENS) {
+            console.log('Gerando resumo para', numero)
+            resumo = await gerarResumo(nome, resumo, mensagens)
+            mensagens = [] // limpa histórico após resumir
+        }
+
+        await salvarConversa(numero, nome, resumo, mensagens)
         await enviarWhatsApp(numero, resposta)
 
         return res.sendStatus(200)
@@ -141,7 +222,7 @@ app.post('/perguntar', async (req, res) => {
         const contexto = await buscarSupabase(pergunta)
         console.log('Contexto tamanho:', contexto.length)
 
-        const resposta = await perguntarClaude(contexto || 'Sem contexto disponivel.', pergunta)
+        const resposta = await perguntarClaude('', '', [], contexto, pergunta)
         return res.json({ resposta })
 
     } catch (err) {
@@ -153,8 +234,6 @@ app.post('/perguntar', async (req, res) => {
 app.get('/debug', async (req, res) => {
     try {
         const voyageKey = process.env.VOYAGE_API_KEY
-        const supabaseUrl = process.env.SUPABASE_URL
-
         const response = await fetch('https://api.voyageai.com/v1/embeddings', {
             method: 'POST',
             headers: {
@@ -164,7 +243,6 @@ app.get('/debug', async (req, res) => {
             body: JSON.stringify({ model: 'voyage-3-lite', input: 'teste' })
         })
         const data = await response.json()
-
         const embedding = response.ok ? data.data[0].embedding : null
         let supabase_result = null
         let supabase_error = null
@@ -176,11 +254,8 @@ app.get('/debug', async (req, res) => {
             supabase_result = sbData?.length ?? 0
             supabase_error = sbError?.message ?? null
         }
-
         res.json({
             voyage_key_prefix: voyageKey?.slice(0, 8),
-            supabase_url: supabaseUrl,
-            supabase_key_prefix: process.env.SUPABASE_KEY?.slice(0, 10),
             voyage_status: response.status,
             voyage_ok: response.ok,
             supabase_resultados: supabase_result,
