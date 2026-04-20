@@ -17,19 +17,31 @@
     </div>
     <div class="login-form">
 
-      <div id="passo-telefone">
-        <p>Informe seu WhatsApp para receber o código</p>
-        <input type="tel" id="input-telefone" placeholder="(45) 99999-9999"
-          onkeydown="if(event.key==='Enter')solicitarCodigo()">
-        <button onclick="solicitarCodigo()" id="btn-enviar">Enviar código</button>
+      <!-- Passo 1: login normal -->
+      <div id="passo-login">
+        <p>Acesse o painel de atendimento</p>
+        <input type="tel" id="input-numero" placeholder="(45) 99999-9999" onkeydown="if(event.key==='Enter')document.getElementById('input-senha-login').focus()">
+        <input type="password" id="input-senha-login" placeholder="Senha" onkeydown="if(event.key==='Enter')fazerLogin()">
+        <button onclick="fazerLogin()" id="btn-login">Entrar</button>
+        <button class="btn-link" onclick="mostrarRecuperacao()">Esqueci minha senha</button>
       </div>
 
-      <div id="passo-codigo" style="display:none">
-        <p>Código enviado! Verifique seu WhatsApp.</p>
-        <input type="text" id="input-codigo" placeholder="000000" maxlength="6"
-          onkeydown="if(event.key==='Enter')verificarCodigo()" autocomplete="one-time-code">
-        <button onclick="verificarCodigo()" id="btn-verificar">Verificar</button>
-        <button class="btn-ghost" onclick="voltarTelefone()">Usar outro número</button>
+      <!-- Passo 2: recuperação - solicitar código -->
+      <div id="passo-recuperar" style="display:none">
+        <p>Informe seu número para receber o código de recuperação via WhatsApp</p>
+        <input type="tel" id="input-rec-numero" placeholder="(45) 99999-9999" onkeydown="if(event.key==='Enter')solicitarRecuperacao()">
+        <button onclick="solicitarRecuperacao()" id="btn-rec-enviar">Enviar código</button>
+        <button class="btn-link" onclick="mostrarLogin()">Voltar ao login</button>
+      </div>
+
+      <!-- Passo 3: recuperação - inserir código + nova senha -->
+      <div id="passo-redefinir" style="display:none">
+        <p>Digite o código recebido e defina sua nova senha</p>
+        <input type="text" id="input-rec-codigo" placeholder="Código (6 dígitos)" maxlength="6" autocomplete="one-time-code">
+        <input type="password" id="input-nova-senha" placeholder="Nova senha (mín. 6 caracteres)">
+        <input type="password" id="input-confirmar-senha" placeholder="Confirmar nova senha" onkeydown="if(event.key==='Enter')redefinirSenha()">
+        <button onclick="redefinirSenha()" id="btn-redefinir">Redefinir senha</button>
+        <button class="btn-link" onclick="mostrarLogin()">Voltar ao login</button>
       </div>
 
       <div id="erro"></div>
@@ -42,8 +54,11 @@
 
   <!-- Sidebar -->
   <nav id="sidebar">
-    <div class="sidebar-logo">
-      <img src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
+    <div class="sidebar-top">
+      <button class="hamburger" onclick="toggleSidebar()" title="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <img class="sidebar-logo-img" src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
     </div>
     <ul class="sidebar-menu">
       <li class="menu-item active" data-pagina="analytics" onclick="navegarPara('analytics')">
@@ -54,10 +69,11 @@
         <span class="menu-icon">👥</span>
         <span class="menu-label">Usuários</span>
       </li>
+      <li class="menu-item" data-pagina="configuracoes" onclick="navegarPara('configuracoes')">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-label">Configurações</span>
+      </li>
     </ul>
-    <div class="sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu">
-      <span id="toggle-icon">◀</span>
-    </div>
   </nav>
 
   <!-- Conteúdo principal -->
@@ -65,7 +81,6 @@
 
     <!-- ── Página: Analytics ── -->
     <div id="pagina-analytics">
-
       <div class="page-header">
         <h1>Analytics</h1>
         <span class="page-sub">Atendimento Bellinha</span>
@@ -99,9 +114,7 @@
       <div class="section">
         <h2>Corretores mais ativos</h2>
         <table>
-          <thead>
-            <tr><th>#</th><th>Nome</th><th>Telefone</th><th>Imobiliária</th><th>Mensagens</th></tr>
-          </thead>
+          <thead><tr><th>#</th><th>Nome</th><th>Telefone</th><th>Imobiliária</th><th>Mensagens</th></tr></thead>
           <tbody id="tb-corretores"></tbody>
         </table>
       </div>
@@ -126,12 +139,10 @@
         <h2>Lacunas pendentes de revisão</h2>
         <div id="lacunas-list"></div>
       </div>
-
-    </div><!-- /pagina-analytics -->
+    </div>
 
     <!-- ── Página: Usuários ── -->
     <div id="pagina-usuarios" style="display:none">
-
       <div class="page-header">
         <h1>Usuários</h1>
         <span class="page-sub">Acesso ao Dashboard</span>
@@ -139,25 +150,41 @@
 
       <div class="section">
         <h2>Adicionar usuário</h2>
-        <div class="form-inline">
+        <div class="form-grid">
           <input type="text" id="novo-nome" placeholder="Nome">
           <input type="tel" id="novo-numero" placeholder="(45) 99999-9999">
+          <input type="password" id="novo-senha" placeholder="Senha (mín. 6 caracteres)">
           <button onclick="adicionarUsuario()">Adicionar</button>
         </div>
-        <div id="erro-usuarios" style="color:#b94a48;font-size:13px;margin-top:8px"></div>
+        <div id="erro-usuarios" class="form-erro"></div>
       </div>
 
       <div class="section">
         <h2>Usuários cadastrados</h2>
         <table>
-          <thead>
-            <tr><th>Nome</th><th>Número</th><th>Desde</th><th></th></tr>
-          </thead>
+          <thead><tr><th>Nome</th><th>Número</th><th>Desde</th><th></th></tr></thead>
           <tbody id="tb-usuarios"></tbody>
         </table>
       </div>
+    </div>
 
-    </div><!-- /pagina-usuarios -->
+    <!-- ── Página: Configurações ── -->
+    <div id="pagina-configuracoes" style="display:none">
+      <div class="page-header">
+        <h1>Configurações</h1>
+        <span class="page-sub">Sua conta</span>
+      </div>
+
+      <div class="section" style="max-width:420px">
+        <h2>Trocar senha</h2>
+        <input type="password" id="cfg-senha-atual" placeholder="Senha atual">
+        <input type="password" id="cfg-nova-senha" placeholder="Nova senha (mín. 6 caracteres)">
+        <input type="password" id="cfg-confirmar-senha" placeholder="Confirmar nova senha">
+        <button onclick="trocarSenha()" id="btn-trocar" style="margin-top:4px">Salvar nova senha</button>
+        <div id="erro-cfg" class="form-erro"></div>
+        <div id="ok-cfg" class="form-ok"></div>
+      </div>
+    </div>
 
   </main>
 </div>
