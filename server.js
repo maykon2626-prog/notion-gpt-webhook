@@ -150,6 +150,33 @@ app.post('/perguntar', async (req, res) => {
     }
 })
 
+app.get('/debug', async (req, res) => {
+    try {
+        const voyageKey = process.env.VOYAGE_API_KEY
+        const supabaseUrl = process.env.SUPABASE_URL
+
+        const response = await fetch('https://api.voyageai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${voyageKey}`
+            },
+            body: JSON.stringify({ model: 'voyage-3-lite', input: 'teste' })
+        })
+        const data = await response.json()
+
+        res.json({
+            voyage_key_prefix: voyageKey?.slice(0, 8),
+            supabase_url: supabaseUrl,
+            voyage_status: response.status,
+            voyage_ok: response.ok,
+            voyage_error: response.ok ? null : data.detail
+        })
+    } catch (err) {
+        res.json({ erro: err.message })
+    }
+})
+
 app.get('/', (req, res) => {
     res.json({ status: 'Bellinha rodando' })
 })
