@@ -48,13 +48,16 @@
     <ul class="sidebar-menu">
       <li class="menu-item active" data-pagina="analytics" onclick="navegarPara('analytics')">
         <span class="menu-icon">📊</span>
-        <span>Analytics</span>
+        <span class="menu-label">Analytics</span>
       </li>
       <li class="menu-item" data-pagina="usuarios" onclick="navegarPara('usuarios')">
         <span class="menu-icon">👥</span>
-        <span>Usuários</span>
+        <span class="menu-label">Usuários</span>
       </li>
     </ul>
+    <div class="sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu">
+      <span id="toggle-icon">◀</span>
+    </div>
   </nav>
 
   <!-- Conteúdo principal -->

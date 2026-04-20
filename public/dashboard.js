@@ -20,6 +20,22 @@ function api(path, opts = {}) {
   })
 }
 
+// ── Sidebar toggle ───────────────────────────────
+
+function toggleSidebar() {
+  const collapsed = document.body.classList.toggle('sidebar-collapsed')
+  document.getElementById('toggle-icon').textContent = collapsed ? '▶' : '◀'
+  localStorage.setItem('sidebar-collapsed', collapsed)
+}
+
+if (localStorage.getItem('sidebar-collapsed') === 'true') {
+  document.body.classList.add('sidebar-collapsed')
+  document.addEventListener('DOMContentLoaded', () => {
+    const icon = document.getElementById('toggle-icon')
+    if (icon) icon.textContent = '▶'
+  })
+}
+
 // ── Navegação ─────────────────────────────────────
 
 function navegarPara(pagina) {
