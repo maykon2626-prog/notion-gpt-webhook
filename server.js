@@ -3,12 +3,25 @@ const Anthropic = require('@anthropic-ai/sdk')
 const { createClient } = require('@supabase/supabase-js')
 const cors = require('cors')
 
+const path = require('path')
+
 const app = express()
 app.use(cors())
 app.use(express.json())
+app.use(express.static(path.join(__dirname, 'public')))
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
+
+async function claudeCreate(params) {
+    const response = await anthropic.messages.create(params)
+    supabase.from('uso_tokens').insert({
+        modelo: params.model || 'claude-sonnet-4-6',
+        tokens_entrada: response.usage?.input_tokens || 0,
+        tokens_saida: response.usage?.output_tokens || 0
+    }).then(({ error }) => { if (error) console.error('Erro ao salvar tokens:', error.message) })
+    return response
+}
 
 const LIMITE_MENSAGENS = 30
 
@@ -76,7 +89,7 @@ async function salvarConversa(numero, nome, tipo, resumo, mensagens, ativo = fal
 async function gerarResumo(nome, resumoAnterior, mensagens) {
     try {
         const historico = mensagens.map(m => `${m.role === 'user' ? 'Corretor' : 'Bellinha'}: ${m.content}`).join('\n')
-        const response = await anthropic.messages.create({
+        const response = await claudeCreate({
             model: 'claude-sonnet-4-6',
             max_tokens: 300,
             system: 'Você resume conversas de atendimento imobiliário de forma concisa. Foque em: empreendimentos consultados, dúvidas levantadas e informações importantes trocadas.',
@@ -118,7 +131,7 @@ CONTEXTO DOS EMPREENDIMENTOS:
 ${contexto || 'Sem contexto disponível.'}`
 
         const response = await Promise.race([
-            anthropic.messages.create({
+            claudeCreate({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 512,
                 system,
@@ -210,7 +223,7 @@ app.post('/whatsapp', async (req, res) => {
 
             // Se estava aguardando nome deste remetente neste grupo
             if (pendente === numero) {
-                const extracaoNome = await anthropic.messages.create({
+                const extracaoNome = await claudeCreate({
                     model: 'claude-sonnet-4-6',
                     max_tokens: 50,
                     system: 'Extraia apenas o primeiro nome da mensagem. Responda APENAS em JSON: {"nome": "..."}. Se não identificar um nome, use o texto original.',
@@ -300,7 +313,7 @@ app.post('/whatsapp', async (req, res) => {
             }
 
             // Segunda mensagem: extrai o nome e pergunta imobiliária
-            const extracaoNome = await anthropic.messages.create({
+            const extracaoNome = await claudeCreate({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 50,
                 system: 'Extraia apenas o primeiro nome da mensagem. Responda APENAS em JSON: {"nome": "..."}. Se não identificar um nome, use o texto original.',
@@ -323,7 +336,7 @@ app.post('/whatsapp', async (req, res) => {
 
         // Terceira mensagem: salva imobiliária/autônomo (apenas individual)
         if (!isGrupo && !tipo) {
-            const extracao = await anthropic.messages.create({
+            const extracao = await claudeCreate({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 50,
                 system: 'Extraia o vínculo profissional da mensagem. Responda APENAS em JSON: {"tipo": "..."}. Se for autônomo use "Autônomo". Se mencionar imobiliária, extraia apenas o nome dela. Se não identificar, use o texto original.',
@@ -410,6 +423,15 @@ app.get('/analytics', async (req, res) => {
 
         const { data: faqs } = await supabase.from('faq_gerado').select('arquivo, criado_em').order('criado_em', { ascending: false }).limit(5)
 
+        let tokenQuery = supabase.from('uso_tokens').select('tokens_entrada, tokens_saida')
+        if (de) tokenQuery = tokenQuery.gte('criado_em', new Date(de).toISOString())
+        if (ate) tokenQuery = tokenQuery.lte('criado_em', new Date(ate + 'T23:59:59').toISOString())
+        const { data: tokensData } = await tokenQuery
+        const totalEntrada = tokensData?.reduce((s, r) => s + (r.tokens_entrada || 0), 0) || 0
+        const totalSaida = tokensData?.reduce((s, r) => s + (r.tokens_saida || 0), 0) || 0
+        const custoUSD = ((totalEntrada / 1_000_000) * 3) + ((totalSaida / 1_000_000) * 15)
+        const budget = parseFloat(process.env.ANTHROPIC_BUDGET_USD || '0')
+
         const normalizar = str => str?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() || ''
 
         const stats = {
@@ -419,7 +441,14 @@ app.get('/analytics', async (req, res) => {
             por_imobiliaria: {},
             por_produto: {},
             lacunas_pendentes: lacunas || [],
-            faqs_gerados: faqs || []
+            faqs_gerados: faqs || [],
+            tokens: {
+                entrada: totalEntrada,
+                saida: totalSaida,
+                custo_usd: custoUSD.toFixed(4),
+                saldo_usd: budget > 0 ? Math.max(0, budget - custoUSD).toFixed(2) : null,
+                budget_usd: budget > 0 ? budget : null
+            }
         }
 
         const produtos = ['Noah Beach', 'NOA Garden', 'Noah']
@@ -467,157 +496,7 @@ app.get('/analytics', async (req, res) => {
 })
 
 app.get('/dashboard', (req, res) => {
-    res.send(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bellinha — Dashboard</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: sans-serif; background: #f4f6f9; color: #333; }
-  #login { display: flex; align-items: center; justify-content: center; height: 100vh; }
-  #login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); text-align: center; width: 320px; }
-  #login-box h2 { margin-bottom: 8px; }
-  #login-box p { color: #888; margin-bottom: 24px; font-size: 14px; }
-  input[type=password] { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; margin-bottom: 12px; }
-  button { width: 100%; padding: 10px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
-  button:hover { background: #4338ca; }
-  #erro { color: red; font-size: 13px; margin-top: 8px; }
-  #app { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
-  h1 { font-size: 22px; margin-bottom: 24px; color: #4f46e5; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
-  .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
-  .card h3 { font-size: 13px; color: #888; margin-bottom: 6px; }
-  .card .num { font-size: 32px; font-weight: bold; color: #4f46e5; }
-  .section { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); margin-bottom: 20px; }
-  .section h2 { font-size: 15px; margin-bottom: 14px; color: #555; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; color: #888; font-weight: 500; padding: 6px 8px; border-bottom: 1px solid #eee; }
-  td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
-  .bar-wrap { background: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 4px; }
-  .bar { background: #4f46e5; height: 8px; border-radius: 4px; }
-  .tag { display: inline-block; background: #ede9fe; color: #4f46e5; border-radius: 6px; padding: 2px 8px; font-size: 12px; }
-  .lacuna { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #555; }
-  .filtros { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; background: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); flex-wrap: wrap; }
-  .filtros label { font-size: 13px; color: #888; }
-  .filtros input[type=date] { border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
-  .filtros button { padding: 7px 18px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
-  .filtros button.limpar { background: #f0f0f0; color: #555; }
-</style>
-</head>
-<body>
-<div id="login">
-  <div id="login-box">
-    <h2>🤖 Bellinha</h2>
-    <p>Dashboard de Analytics</p>
-    <input type="password" id="senha" placeholder="Senha" onkeydown="if(event.key==='Enter')entrar()">
-    <button onclick="entrar()">Entrar</button>
-    <div id="erro"></div>
-  </div>
-</div>
-<div id="app">
-  <h1>Dashboard Bellinha</h1>
-  <div class="filtros">
-    <label>De: <input type="date" id="f-de"></label>
-    <label>Até: <input type="date" id="f-ate"></label>
-    <button onclick="filtrar()">Filtrar</button>
-    <button class="limpar" onclick="limparFiltro()">Limpar</button>
-    <span id="f-label" style="font-size:12px;color:#aaa"></span>
-  </div>
-  <div class="grid">
-    <div class="card"><h3>Total de Corretores</h3><div class="num" id="total-corretores">-</div></div>
-    <div class="card"><h3>Total de Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
-    <div class="card"><h3>Lacunas Pendentes</h3><div class="num" id="total-lacunas">-</div></div>
-    <div class="card"><h3>FAQs Gerados</h3><div class="num" id="total-faqs">-</div></div>
-  </div>
-  <div class="section">
-    <h2>Corretores mais ativos</h2>
-    <table><thead><tr><th>#</th><th>Nome</th><th>Telefone</th><th>Imobiliária</th><th>Mensagens</th></tr></thead>
-    <tbody id="tb-corretores"></tbody></table>
-  </div>
-  <div class="grid">
-    <div class="section">
-      <h2>Por Imobiliária</h2>
-      <div id="imob-list"></div>
-    </div>
-    <div class="section">
-      <h2>Produtos mais consultados</h2>
-      <div id="prod-list"></div>
-    </div>
-  </div>
-  <div class="section">
-    <h2>Lacunas pendentes de revisão</h2>
-    <div id="lacunas-list"></div>
-  </div>
-</div>
-<script>
-let senhaAtual = ''
-async function entrar() {
-  const s = document.getElementById('senha').value
-  const r = await fetch('/analytics', { headers: { 'x-senha': s } })
-  if (r.status === 401) { document.getElementById('erro').textContent = 'Senha incorreta'; return }
-  senhaAtual = s
-  const data = await r.json()
-  document.getElementById('login').style.display = 'none'
-  document.getElementById('app').style.display = 'block'
-  renderizar(data)
-}
-async function filtrar() {
-  const de = document.getElementById('f-de').value
-  const ate = document.getElementById('f-ate').value
-  let url = '/analytics'
-  const params = new URLSearchParams()
-  if (de) params.append('de', de)
-  if (ate) params.append('ate', ate)
-  if (params.toString()) url += '?' + params.toString()
-  document.getElementById('f-label').textContent = de || ate ? \`Filtrando: \${de||'início'} → \${ate||'hoje'}\` : ''
-  const r = await fetch(url, { headers: { 'x-senha': senhaAtual } })
-  renderizar(await r.json())
-}
-async function limparFiltro() {
-  document.getElementById('f-de').value = ''
-  document.getElementById('f-ate').value = ''
-  document.getElementById('f-label').textContent = ''
-  const r = await fetch('/analytics', { headers: { 'x-senha': senhaAtual } })
-  renderizar(await r.json())
-}
-function renderizar(d) {
-  document.getElementById('total-corretores').textContent = d.total_corretores
-  document.getElementById('total-mensagens').textContent = d.total_mensagens
-  document.getElementById('total-lacunas').textContent = d.lacunas_pendentes.length
-  document.getElementById('total-faqs').textContent = d.faqs_gerados.length
-
-  const max = d.por_corretor[0]?.mensagens || 1
-  document.getElementById('tb-corretores').innerHTML = d.por_corretor.slice(0, 10).map((c, i) =>
-    \`<tr><td>\${i+1}</td><td>\${c.nome}</td><td style="font-size:13px"><a href="https://wa.me/\${c.telefone}" target="_blank" style="color:#25d366;text-decoration:none">📱 \${c.telefone}</a></td><td><span class="tag">\${c.tipo}</span></td><td>\${c.mensagens}</td></tr>\`
-  ).join('')
-
-  const maxImob = Math.max(...d.por_imobiliaria.map(i => i.count), 1)
-  document.getElementById('imob-list').innerHTML = d.por_imobiliaria.map(i =>
-    \`<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:13px">
-        <span>\${i.label}</span>
-        <span style="color:#888">\${i.corretores} corretor\${i.corretores !== 1 ? 'es' : ''} · \${i.count} msgs</span>
-      </div>
-      <div class="bar-wrap"><div class="bar" style="width:\${Math.round(i.count/maxImob*100)}%"></div></div>
-    </div>\`
-  ).join('')
-
-  const maxProd = Math.max(...Object.values(d.por_produto), 1)
-  document.getElementById('prod-list').innerHTML = Object.entries(d.por_produto)
-    .sort((a,b) => b[1]-a[1]).map(([k,v]) =>
-      \`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>\${k}</span><span>\${v}</span></div>
-      <div class="bar-wrap"><div class="bar" style="width:\${Math.round(v/maxProd*100)}%"></div></div></div>\`
-    ).join('')
-
-  document.getElementById('lacunas-list').innerHTML = d.lacunas_pendentes.length
-    ? d.lacunas_pendentes.map(l => \`<div class="lacuna">❓ \${l.pergunta}</div>\`).join('')
-    : '<p style="color:#aaa;font-size:13px">Nenhuma lacuna pendente 🎉</p>'
-}
-</script>
-</body>
-</html>`)
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'))
 })
 
 app.post('/perguntar', async (req, res) => {
@@ -669,7 +548,7 @@ app.post('/gerar-faq', async (req, res) => {
         if (!todasPerguntas.length) return res.json({ status: 'sem perguntas' })
 
         // Claude analisa e gera FAQ
-        const analise = await anthropic.messages.create({
+        const analise = await claudeCreate({
             model: 'claude-sonnet-4-6',
             max_tokens: 2000,
             system: `Você analisa conversas de corretores imobiliários e gera um documento FAQ.

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bellinha — Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<div id="login">
+  <div id="login-box">
+    <h2>🤖 Bellinha</h2>
+    <p>Dashboard de Analytics</p>
+    <input type="password" id="senha" placeholder="Senha" onkeydown="if(event.key==='Enter')entrar()">
+    <button onclick="entrar()">Entrar</button>
+    <div id="erro"></div>
+  </div>
+</div>
+
+<div id="app">
+  <h1>Dashboard Bellinha</h1>
+
+  <div class="filtros">
+    <label>De: <input type="date" id="f-de"></label>
+    <label>Até: <input type="date" id="f-ate"></label>
+    <button onclick="filtrar()">Filtrar</button>
+    <button class="limpar" onclick="limparFiltro()">Limpar</button>
+    <span id="f-label"></span>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>Total de Corretores</h3><div class="num" id="total-corretores">-</div></div>
+    <div class="card"><h3>Total de Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
+    <div class="card"><h3>Lacunas Pendentes</h3><div class="num" id="total-lacunas">-</div></div>
+    <div class="card"><h3>FAQs Gerados</h3><div class="num" id="total-faqs">-</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Uso de API — Claude</h2>
+    <div class="grid" style="margin-bottom:0">
+      <div class="card"><h3>Tokens de Entrada</h3><div class="num" id="tokens-entrada">-</div></div>
+      <div class="card"><h3>Tokens de Saída</h3><div class="num" id="tokens-saida">-</div></div>
+      <div class="card"><h3>Custo Estimado</h3><div class="num num-sm" id="custo-usd">-</div></div>
+      <div class="card" id="card-saldo" style="display:none"><h3>Saldo Restante</h3><div class="num num-sm" id="saldo-usd">-</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Corretores mais ativos</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Nome</th><th>Telefone</th><th>Imobiliária</th><th>Mensagens</th></tr>
+      </thead>
+      <tbody id="tb-corretores"></tbody>
+    </table>
+  </div>
+
+  <div class="grid">
+    <div class="section">
+      <h2>Por Imobiliária</h2>
+      <div id="imob-list"></div>
+    </div>
+    <div class="section">
+      <h2>Produtos mais consultados</h2>
+      <div id="prod-list"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Lacunas pendentes de revisão</h2>
+    <div id="lacunas-list"></div>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
