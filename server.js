@@ -108,6 +108,7 @@ REGRAS:
 - Nunca misture dados de empreendimentos diferentes
 - Respostas curtas e objetivas
 - Chame o corretor pelo nome (${nome || 'corretor'}) quando apropriado
+- Use formatação do WhatsApp: *negrito* com um asterisco, _itálico_ com underline. NUNCA use **duplo asterisco**
 
 ${resumo ? `RESUMO DO HISTÓRICO:\n${resumo}\n` : ''}
 CONTEXTO DOS EMPREENDIMENTOS:
