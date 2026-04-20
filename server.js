@@ -199,7 +199,7 @@ app.post('/whatsapp', async (req, res) => {
             const extracao = await anthropic.messages.create({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 50,
-                system: 'Extraia o vínculo profissional da mensagem. Responda APENAS em JSON: {"tipo": "..."}. Use "Autônomo" ou o nome da imobiliária. Se não identificar, use o texto original.',
+                system: 'Extraia o vínculo profissional da mensagem. Responda APENAS em JSON: {"tipo": "..."}. Se for autônomo use "Autônomo". Se mencionar imobiliária, extraia apenas o nome dela. Se não identificar, use o texto original.',
                 messages: [{ role: 'user', content: texto }]
             })
 
