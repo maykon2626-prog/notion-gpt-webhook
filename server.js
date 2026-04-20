@@ -86,6 +86,63 @@ async function salvarConversa(numero, nome, tipo, resumo, mensagens, ativo = fal
     if (error) console.error('Erro ao salvar conversa:', error.message)
 }
 
+async function extrairInfoCorretor(texto) {
+    const { data: existentes } = await supabase
+        .from('conversas')
+        .select('tipo')
+        .not('tipo', 'is', null)
+        .neq('tipo', '')
+    const tiposExistentes = [...new Set((existentes || []).map(r => r.tipo).filter(Boolean))]
+
+    const listaStr = tiposExistentes.length
+        ? `Imobiliárias já cadastradas: ${tiposExistentes.join(', ')}.`
+        : ''
+
+    const res = await claudeCreate({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 80,
+        system: `Extraia o nome e vínculo profissional da mensagem. Responda APENAS em JSON: {"nome": "...", "tipo": "..."}.
+Para "nome": apenas o primeiro nome. Para "tipo": se autônomo use "Autônomo", se mencionar imobiliária extraia o nome dela.
+${listaStr ? listaStr + ' Se o tipo extraído for parecido com alguma já cadastrada (ex: "hom" e "hom imóveis"), use o nome já cadastrado exatamente.' : ''}
+Se não identificar tipo, deixe "".`,
+        messages: [{ role: 'user', content: texto }]
+    })
+    try {
+        return JSON.parse(res.content[0].text)
+    } catch {
+        return { nome: texto.trim(), tipo: '' }
+    }
+}
+
+async function normalizarTipo(texto) {
+    const { data: existentes } = await supabase
+        .from('conversas')
+        .select('tipo')
+        .not('tipo', 'is', null)
+        .neq('tipo', '')
+    const tiposExistentes = [...new Set((existentes || []).map(r => r.tipo).filter(Boolean))]
+
+    const listaStr = tiposExistentes.length
+        ? `Imobiliárias já cadastradas: ${tiposExistentes.join(', ')}.`
+        : ''
+
+    const res = await claudeCreate({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 50,
+        system: `Extraia o vínculo profissional da mensagem. Responda APENAS em JSON: {"tipo": "..."}.
+Se for autônomo use "Autônomo". Se mencionar imobiliária, extraia o nome dela.
+${listaStr ? listaStr + ' Se o nome for parecido com alguma já cadastrada, use o nome cadastrado exatamente.' : ''}
+Se não identificar, use o texto original.`,
+        messages: [{ role: 'user', content: texto }]
+    })
+    try {
+        const info = JSON.parse(res.content[0].text)
+        return info.tipo || texto.trim()
+    } catch {
+        return texto.trim()
+    }
+}
+
 async function gerarResumo(nome, resumoAnterior, mensagens) {
     try {
         const historico = mensagens.map(m => `${m.role === 'user' ? 'Corretor' : 'Bellinha'}: ${m.content}`).join('\n')
@@ -313,20 +370,9 @@ app.post('/whatsapp', async (req, res) => {
             }
 
             // Segunda mensagem: extrai nome e imobiliária (podem vir juntos)
-            const extracaoNome = await claudeCreate({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 80,
-                system: 'Extraia o nome e o vínculo profissional da mensagem. Responda APENAS em JSON: {"nome": "...", "tipo": "..."}. Para "nome" use apenas o primeiro nome. Para "tipo": se for autônomo use "Autônomo", se mencionar imobiliária extraia apenas o nome dela, caso contrário deixe vazio "". Se não identificar nome, use o texto original.',
-                messages: [{ role: 'user', content: textoPuro }]
-            })
-            try {
-                const info = JSON.parse(extracaoNome.content[0].text)
-                nome = info.nome || textoPuro
-                tipo = info.tipo || ''
-            } catch {
-                nome = textoPuro
-                tipo = ''
-            }
+            const info = await extrairInfoCorretor(textoPuro)
+            nome = info.nome || textoPuro
+            tipo = info.tipo || ''
             mensagens.push({ role: 'user', content: textoPuro })
 
             if (tipo) {
@@ -348,19 +394,7 @@ app.post('/whatsapp', async (req, res) => {
 
         // Terceira mensagem: salva imobiliária/autônomo (apenas individual)
         if (!isGrupo && !tipo) {
-            const extracao = await claudeCreate({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 50,
-                system: 'Extraia o vínculo profissional da mensagem. Responda APENAS em JSON: {"tipo": "..."}. Se for autônomo use "Autônomo". Se mencionar imobiliária, extraia apenas o nome dela. Se não identificar, use o texto original.',
-                messages: [{ role: 'user', content: textoPuro }]
-            })
-
-            try {
-                const info = JSON.parse(extracao.content[0].text)
-                tipo = info.tipo || textoPuro
-            } catch {
-                tipo = textoPuro
-            }
+            tipo = await normalizarTipo(textoPuro)
 
             mensagens.push({ role: 'user', content: textoPuro })
             const saudacao = `Anotado! 😊 ${tipo === 'Autônomo' ? 'Autônomo, ' : `Da ${tipo}, `}${nome}! Pode perguntar, estou aqui para te ajudar!`
