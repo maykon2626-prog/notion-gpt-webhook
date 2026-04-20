@@ -428,7 +428,11 @@ app.get('/analytics', async (req, res) => {
             const imob = conv.tipo?.trim() || 'Autônomo'
             const imobKey = normalizar(imob)
             const imobLabel = stats.por_imobiliaria[imobKey]?.label || imob
-            stats.por_imobiliaria[imobKey] = { label: imobLabel, count: (stats.por_imobiliaria[imobKey]?.count || 0) + countUser }
+            stats.por_imobiliaria[imobKey] = {
+                label: imobLabel,
+                count: (stats.por_imobiliaria[imobKey]?.count || 0) + countUser,
+                corretores: (stats.por_imobiliaria[imobKey]?.corretores || 0) + (conv.nome ? 1 : 0)
+            }
 
             for (const m of msgs) {
                 if (m.role === 'user') {
@@ -551,8 +555,13 @@ function renderizar(d) {
 
   const maxImob = Math.max(...d.por_imobiliaria.map(i => i.count), 1)
   document.getElementById('imob-list').innerHTML = d.por_imobiliaria.map(i =>
-    \`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>\${i.label}</span><span>\${i.count}</span></div>
-    <div class="bar-wrap"><div class="bar" style="width:\${Math.round(i.count/maxImob*100)}%"></div></div></div>\`
+    \`<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px">
+        <span>\${i.label}</span>
+        <span style="color:#888">\${i.corretores} corretor\${i.corretores !== 1 ? 'es' : ''} · \${i.count} msgs</span>
+      </div>
+      <div class="bar-wrap"><div class="bar" style="width:\${Math.round(i.count/maxImob*100)}%"></div></div>
+    </div>\`
   ).join('')
 
   const maxProd = Math.max(...Object.values(d.por_produto), 1)
