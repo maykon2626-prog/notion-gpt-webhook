@@ -230,7 +230,7 @@ app.post('/whatsapp', async (req, res) => {
         // Remove a menção do texto antes de processar
         const textoPuro = texto.replace(/@?bel{1,2}inha/gi, '').trim()
 
-        let { nome, tipo, resumo, mensagens } = await carregarConversa(numero)
+        let { nome, tipo, resumo, mensagens, ativo } = await carregarConversa(numero)
 
         // Em grupos não faz onboarding
         if (!isGrupo) {
@@ -308,7 +308,7 @@ app.post('/whatsapp', async (req, res) => {
             mensagens = [] // limpa histórico após resumir
         }
 
-        await salvarConversa(numero, nome, tipo, resumo, mensagens)
+        await salvarConversa(numero, nome, tipo, resumo, mensagens, ativo)
         await enviarWhatsApp(numero, resposta)
 
         return res.sendStatus(200)
