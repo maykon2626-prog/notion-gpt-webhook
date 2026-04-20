@@ -285,6 +285,8 @@ app.get('/debug', async (req, res) => {
             voyage_key_prefix: voyageKey?.slice(0, 8),
             voyage_status: response.status,
             voyage_ok: response.ok,
+            supabase_key_length: process.env.SUPABASE_KEY?.length,
+            supabase_key_prefix: process.env.SUPABASE_KEY?.slice(0, 15),
             supabase_resultados: supabase_result,
             supabase_error
         })
