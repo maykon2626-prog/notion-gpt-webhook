@@ -24,7 +24,14 @@ async function claudeCreate(params) {
 }
 
 const LIMITE_MENSAGENS = 30
-const PRODUTOS = (process.env.PRODUTOS || 'Noah Beach,NOA Garden').split(',').map(p => p.trim())
+
+let produtosCache = { lista: [], atualizadoEm: 0 }
+async function carregarProdutos() {
+    if (Date.now() - produtosCache.atualizadoEm < 5 * 60 * 1000) return produtosCache.lista
+    const { data } = await supabase.from('produtos').select('nome').eq('ativo', true).order('nome')
+    produtosCache = { lista: data?.map(r => r.nome) || [], atualizadoEm: Date.now() }
+    return produtosCache.lista
+}
 
 async function gerarEmbedding(texto) {
     const response = await fetch('https://api.voyageai.com/v1/embeddings', {
@@ -146,10 +153,12 @@ Se não identificar, use o texto original.`,
 }
 
 async function detectarProduto(texto) {
+    const lista = await carregarProdutos()
+    if (!lista.length) return { produto: null, ambiguo: false }
     const res = await claudeCreate({
         model: 'claude-sonnet-4-6',
         max_tokens: 150,
-        system: `Analise se a mensagem menciona algum empreendimento desta lista: ${PRODUTOS.join(', ')}.
+        system: `Analise se a mensagem menciona algum empreendimento desta lista: ${lista.join(', ')}.
 Responda APENAS em JSON:
 - Menciona claramente um: {"produto": "nome exato da lista", "ambiguo": false}
 - Ambíguo (pode ser mais de um): {"produto": null, "ambiguo": true, "candidatos": ["nome1", "nome2"]}
@@ -557,7 +566,7 @@ app.get('/analytics', async (req, res) => {
             }
         }
 
-        const produtos = PRODUTOS
+        const produtos = await carregarProdutos()
 
         for (const conv of conversas || []) {
             const msgs = conv.mensagens || []
