@@ -65,50 +65,50 @@ async function gerarEmbedding(texto) {
     return data.data[0].embedding
 }
 
-async function indexar() {
-    console.log('Iniciando indexacao...')
-
-    const docsDir = path.join(__dirname, 'docs')
-    if (!fs.existsSync(docsDir)) {
-        console.log('Pasta docs nao encontrada')
-        return
-    }
-
-    console.log('Limpando indice antigo...')
-    await supabase.from('documentos').delete().neq('id', 0)
-
-    const arquivos = lerArquivosRecursivo(docsDir)
-    console.log(arquivos.length + ' arquivos encontrados')
-
+async function indexarArquivos(arquivos) {
     let primeiraRequisicao = true
-
     for (const arquivo of arquivos) {
         const nome = path.relative(__dirname, arquivo)
         console.log('Indexando: ' + nome)
-
         const texto = fs.readFileSync(arquivo, 'utf-8')
         const pedacos = dividirTexto(texto)
         console.log(pedacos.length + ' pedacos')
-
         for (let i = 0; i < pedacos.length; i++) {
             try {
                 if (!primeiraRequisicao) await new Promise(r => setTimeout(r, 25000))
                 primeiraRequisicao = false
                 const embedding = await gerarEmbedding(pedacos[i])
-                const { error } = await supabase.from('documentos').insert({
-                    arquivo: nome,
-                    conteudo: pedacos[i],
-                    embedding
-                })
-                if (error) {
-                    console.error('Erro Supabase:', error.message)
-                } else {
-                    console.log('Pedaco ' + (i + 1) + '/' + pedacos.length + ' ok')
-                }
+                const { error } = await supabase.from('documentos').insert({ arquivo: nome, conteudo: pedacos[i], embedding })
+                if (error) console.error('Erro Supabase:', error.message)
+                else console.log('Pedaco ' + (i + 1) + '/' + pedacos.length + ' ok')
             } catch (err) {
                 console.error('Erro pedaco ' + (i + 1) + ':', err.message)
             }
         }
+    }
+}
+
+async function indexar() {
+    const arquivoEspecifico = process.argv[2]
+
+    const docsDir = path.join(__dirname, 'docs')
+    if (!fs.existsSync(docsDir)) { console.log('Pasta docs nao encontrada'); return }
+
+    if (arquivoEspecifico) {
+        const caminho = path.resolve(__dirname, arquivoEspecifico)
+        if (!fs.existsSync(caminho)) { console.log('Arquivo nao encontrado: ' + arquivoEspecifico); return }
+        const nome = path.relative(__dirname, caminho)
+        console.log('Re-indexando apenas: ' + nome)
+        await supabase.from('documentos').delete().eq('arquivo', nome)
+        console.log('Registros antigos removidos')
+        await indexarArquivos([caminho])
+    } else {
+        console.log('Indexando todos os arquivos...')
+        await supabase.from('documentos').delete().neq('id', 0)
+        console.log('Indice limpo')
+        const arquivos = lerArquivosRecursivo(docsDir)
+        console.log(arquivos.length + ' arquivos encontrados')
+        await indexarArquivos(arquivos)
     }
 
     console.log('Indexacao concluida!')
