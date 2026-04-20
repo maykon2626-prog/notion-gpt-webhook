@@ -1,18 +1,23 @@
-let senhaAtual = ''
+let senhaAtual = sessionStorage.getItem('dash_senha') || ''
 
-async function entrar() {
-  const s = document.getElementById('senha').value
+async function entrar(s) {
+  s = s || document.getElementById('senha')?.value
   const r = await fetch('/analytics', { headers: { 'x-senha': s } })
   if (r.status === 401) {
-    document.getElementById('erro').textContent = 'Senha incorreta'
+    sessionStorage.removeItem('dash_senha')
+    senhaAtual = ''
+    if (document.getElementById('erro')) document.getElementById('erro').textContent = 'Senha incorreta'
     return
   }
   senhaAtual = s
+  sessionStorage.setItem('dash_senha', s)
   const data = await r.json()
   document.getElementById('login').style.display = 'none'
   document.getElementById('app').style.display = 'block'
   renderizar(data)
 }
+
+if (senhaAtual) entrar(senhaAtual)
 
 async function filtrar() {
   const de = document.getElementById('f-de').value
