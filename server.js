@@ -201,6 +201,8 @@ app.post('/whatsapp', async (req, res) => {
             if (mencionada) novoAtivo = true
             if (ativoGrupo && pedindoParar) novoAtivo = false
 
+            console.log('GRUPO - ativoAntes:', ativoGrupo, '| mencionada:', mencionada, '| parando:', pedindoParar, '| novoAtivo:', novoAtivo)
+
             if (mensagensGrupo.length >= LIMITE_MENSAGENS) {
                 const novoResumo = await gerarResumo('Grupo', resumoGrupo, mensagensGrupo)
                 await salvarConversa(numero, nomeGrupo, tipoGrupo, novoResumo, [], novoAtivo)
