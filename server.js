@@ -165,12 +165,26 @@ app.get('/debug', async (req, res) => {
         })
         const data = await response.json()
 
+        const embedding = response.ok ? data.data[0].embedding : null
+        let supabase_result = null
+        let supabase_error = null
+        if (embedding) {
+            const { data: sbData, error: sbError } = await supabase.rpc('buscar_similar', {
+                query_embedding: embedding,
+                match_count: 2
+            })
+            supabase_result = sbData?.length ?? 0
+            supabase_error = sbError?.message ?? null
+        }
+
         res.json({
             voyage_key_prefix: voyageKey?.slice(0, 8),
             supabase_url: supabaseUrl,
+            supabase_key_prefix: process.env.SUPABASE_KEY?.slice(0, 10),
             voyage_status: response.status,
             voyage_ok: response.ok,
-            voyage_error: response.ok ? null : data.detail
+            supabase_resultados: supabase_result,
+            supabase_error
         })
     } catch (err) {
         res.json({ erro: err.message })
