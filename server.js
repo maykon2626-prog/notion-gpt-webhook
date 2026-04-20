@@ -421,7 +421,8 @@ app.get('/analytics', async (req, res) => {
             stats.total_mensagens += countUser
 
             if (conv.nome) {
-                stats.por_corretor.push({ nome: conv.nome, tipo: conv.tipo || 'Autônomo', mensagens: countUser })
+                const tel = conv.numero?.replace('@s.whatsapp.net', '').replace('@g.us', '') || ''
+                stats.por_corretor.push({ nome: conv.nome, tipo: conv.tipo || 'Autônomo', mensagens: countUser, telefone: tel })
             }
 
             const imob = conv.tipo?.trim() || 'Autônomo'
@@ -507,7 +508,7 @@ app.get('/dashboard', (req, res) => {
   </div>
   <div class="section">
     <h2>Corretores mais ativos</h2>
-    <table><thead><tr><th>#</th><th>Nome</th><th>Imobiliária</th><th>Mensagens</th></tr></thead>
+    <table><thead><tr><th>#</th><th>Nome</th><th>Telefone</th><th>Imobiliária</th><th>Mensagens</th></tr></thead>
     <tbody id="tb-corretores"></tbody></table>
   </div>
   <div class="grid">
@@ -545,7 +546,7 @@ function renderizar(d) {
 
   const max = d.por_corretor[0]?.mensagens || 1
   document.getElementById('tb-corretores').innerHTML = d.por_corretor.slice(0, 10).map((c, i) =>
-    \`<tr><td>\${i+1}</td><td>\${c.nome}</td><td><span class="tag">\${c.tipo}</span></td><td>\${c.mensagens}</td></tr>\`
+    \`<tr><td>\${i+1}</td><td>\${c.nome}</td><td style="color:#888;font-size:13px">\${c.telefone}</td><td><span class="tag">\${c.tipo}</span></td><td>\${c.mensagens}</td></tr>\`
   ).join('')
 
   const maxImob = Math.max(...d.por_imobiliaria.map(i => i.count), 1)
