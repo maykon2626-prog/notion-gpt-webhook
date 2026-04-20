@@ -17,7 +17,6 @@
     </div>
     <div class="login-form">
 
-      <!-- Passo 1: login normal -->
       <div id="passo-login">
         <p>Acesse o painel de atendimento</p>
         <input type="tel" id="input-numero" placeholder="(45) 99999-9999" onkeydown="if(event.key==='Enter')document.getElementById('input-senha-login').focus()">
@@ -26,7 +25,6 @@
         <button class="btn-link" onclick="mostrarRecuperacao()">Esqueci minha senha</button>
       </div>
 
-      <!-- Passo 2: recuperação - solicitar código -->
       <div id="passo-recuperar" style="display:none">
         <p>Informe seu número para receber o código de recuperação via WhatsApp</p>
         <input type="tel" id="input-rec-numero" placeholder="(45) 99999-9999" onkeydown="if(event.key==='Enter')solicitarRecuperacao()">
@@ -34,7 +32,6 @@
         <button class="btn-link" onclick="mostrarLogin()">Voltar ao login</button>
       </div>
 
-      <!-- Passo 3: recuperação - inserir código + nova senha -->
       <div id="passo-redefinir" style="display:none">
         <p>Digite o código recebido e defina sua nova senha</p>
         <input type="text" id="input-rec-codigo" placeholder="Código (6 dígitos)" maxlength="6" autocomplete="one-time-code">
@@ -52,32 +49,51 @@
 <!-- ── App ───────────────────────────────────── -->
 <div id="app">
 
+  <!-- Overlay mobile -->
+  <div id="sidebar-overlay" onclick="fecharSidebar()"></div>
+
   <!-- Sidebar -->
   <nav id="sidebar">
-    <div class="sidebar-top">
-      <button class="hamburger" onclick="toggleSidebar()" title="Menu">
-        <span></span><span></span><span></span>
-      </button>
+    <div class="sidebar-logo-wrap">
       <img class="sidebar-logo-img" src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
     </div>
+
     <ul class="sidebar-menu">
       <li class="menu-item active" data-pagina="analytics" onclick="navegarPara('analytics')">
-        <span class="menu-icon">📊</span>
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
         <span class="menu-label">Analytics</span>
       </li>
       <li class="menu-item" data-pagina="usuarios" onclick="navegarPara('usuarios')">
-        <span class="menu-icon">👥</span>
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
         <span class="menu-label">Usuários</span>
       </li>
       <li class="menu-item" data-pagina="configuracoes" onclick="navegarPara('configuracoes')">
-        <span class="menu-icon">⚙️</span>
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
         <span class="menu-label">Configurações</span>
       </li>
     </ul>
+
+    <button class="hamburger" onclick="toggleSidebar()" title="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </nav>
 
   <!-- Conteúdo principal -->
   <main id="conteudo">
+
+    <!-- Topbar mobile -->
+    <div class="topbar-mobile">
+      <button class="hamburger hamburger-mobile" onclick="abrirSidebar()">
+        <span></span><span></span><span></span>
+      </button>
+      <img src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa" class="topbar-logo">
+    </div>
 
     <!-- ── Página: Analytics ── -->
     <div id="pagina-analytics">
@@ -94,32 +110,41 @@
         <span id="f-label"></span>
       </div>
 
-      <div class="grid">
+      <!-- KPIs principais -->
+      <div class="grid grid-4">
         <div class="card"><h3>Corretores</h3><div class="num" id="total-corretores">-</div></div>
         <div class="card"><h3>Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
         <div class="card"><h3>Lacunas Pendentes</h3><div class="num" id="total-lacunas">-</div></div>
         <div class="card"><h3>FAQs Gerados</h3><div class="num" id="total-faqs">-</div></div>
       </div>
 
-      <div class="section">
-        <h2>Uso de API — Claude</h2>
-        <div class="grid" style="margin-bottom:0">
-          <div class="card"><h3>Tokens de Entrada</h3><div class="num" id="tokens-entrada">-</div></div>
-          <div class="card"><h3>Tokens de Saída</h3><div class="num" id="tokens-saida">-</div></div>
-          <div class="card"><h3>Custo Estimado</h3><div class="num num-sm" id="custo-usd">-</div></div>
-          <div class="card" id="card-saldo" style="display:none"><h3>Saldo Restante</h3><div class="num num-sm" id="saldo-usd">-</div></div>
+      <!-- Tokens -->
+      <div class="grid grid-4" style="margin-bottom:28px">
+        <div class="card"><h3>Tokens de Entrada</h3><div class="num" id="tokens-entrada">-</div></div>
+        <div class="card"><h3>Tokens de Saída</h3><div class="num" id="tokens-saida">-</div></div>
+        <div class="card"><h3>Custo Estimado</h3><div class="num num-sm" id="custo-usd">-</div></div>
+        <div class="card" id="card-saldo" style="display:none"><h3>Saldo Restante</h3><div class="num num-sm" id="saldo-usd">-</div></div>
+      </div>
+
+      <!-- Corretores + Lacunas lado a lado -->
+      <div class="layout-split">
+        <div class="section split-main">
+          <h2>Corretores mais ativos</h2>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>#</th><th>Nome</th><th>Telefone</th><th>Imobiliária</th><th>Msgs</th></tr></thead>
+              <tbody id="tb-corretores"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section split-side">
+          <h2>Lacunas pendentes</h2>
+          <div id="lacunas-list"></div>
         </div>
       </div>
 
-      <div class="section">
-        <h2>Corretores mais ativos</h2>
-        <table>
-          <thead><tr><th>#</th><th>Nome</th><th>Telefone</th><th>Imobiliária</th><th>Mensagens</th></tr></thead>
-          <tbody id="tb-corretores"></tbody>
-        </table>
-      </div>
-
-      <div class="grid">
+      <!-- Imobiliária + Produtos lado a lado -->
+      <div class="layout-split">
         <div class="section">
           <h2>Por Imobiliária</h2>
           <div id="imob-list"></div>
@@ -130,14 +155,10 @@
         </div>
       </div>
 
+      <!-- Gráfico -->
       <div class="section">
         <h2>Mensagens por hora do dia (BRT)</h2>
         <canvas id="grafico-horas" height="80"></canvas>
-      </div>
-
-      <div class="section">
-        <h2>Lacunas pendentes de revisão</h2>
-        <div id="lacunas-list"></div>
       </div>
     </div>
 
@@ -153,7 +174,7 @@
         <div class="form-grid">
           <input type="text" id="novo-nome" placeholder="Nome">
           <input type="tel" id="novo-numero" placeholder="(45) 99999-9999">
-          <input type="password" id="novo-senha" placeholder="Senha (mín. 6 caracteres)">
+          <input type="password" id="novo-senha" placeholder="Senha temporária (mín. 6 caracteres)">
           <button onclick="adicionarUsuario()">Adicionar</button>
         </div>
         <div id="erro-usuarios" class="form-erro"></div>
@@ -161,10 +182,12 @@
 
       <div class="section">
         <h2>Usuários cadastrados</h2>
-        <table>
-          <thead><tr><th>Nome</th><th>Número</th><th>Desde</th><th></th></tr></thead>
-          <tbody id="tb-usuarios"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Nome</th><th>Número</th><th>Desde</th><th></th></tr></thead>
+            <tbody id="tb-usuarios"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -175,7 +198,7 @@
         <span class="page-sub">Sua conta</span>
       </div>
 
-      <div class="section" style="max-width:420px">
+      <div class="section cfg-section">
         <h2>Trocar senha</h2>
         <input type="password" id="cfg-senha-atual" placeholder="Senha atual">
         <input type="password" id="cfg-nova-senha" placeholder="Nova senha (mín. 6 caracteres)">

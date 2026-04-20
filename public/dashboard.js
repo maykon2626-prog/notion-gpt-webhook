@@ -25,8 +25,22 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
 }
 
 function toggleSidebar() {
-  const collapsed = document.body.classList.toggle('sidebar-collapsed')
-  localStorage.setItem('sidebar-collapsed', collapsed)
+  if (window.innerWidth <= 768) {
+    fecharSidebar()
+  } else {
+    const collapsed = document.body.classList.toggle('sidebar-collapsed')
+    localStorage.setItem('sidebar-collapsed', collapsed)
+  }
+}
+
+function abrirSidebar() {
+  $('sidebar').classList.add('open')
+  $('sidebar-overlay').classList.add('open')
+}
+
+function fecharSidebar() {
+  $('sidebar').classList.remove('open')
+  $('sidebar-overlay').classList.remove('open')
 }
 
 // ── Navegação ─────────────────────────────────────
@@ -37,6 +51,7 @@ function navegarPara(pagina) {
   document.querySelectorAll('#conteudo > div[id^="pagina-"]').forEach(el => el.style.display = 'none')
   $(`pagina-${pagina}`).style.display = 'block'
   if (pagina === 'usuarios') carregarUsuarios()
+  if (window.innerWidth <= 768) fecharSidebar()
 }
 
 // ── Login ─────────────────────────────────────────
