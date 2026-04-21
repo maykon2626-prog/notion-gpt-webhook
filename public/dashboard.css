@@ -469,9 +469,13 @@ body.sidebar-collapsed .menu-icon svg { width: 20px; height: 20px; }
 .user-dropdown-divider { height: 1px; background: rgba(232,224,214,0.5); margin: 4px 0; }
 
 /* Páginas full-width sem padding direito */
-#pagina-crm,
+#pagina-crm-pipeline,
 #pagina-bellinha-treinamento {
   padding: 20px 0 0 24px;
+}
+
+#pagina-crm-clientes {
+  padding: 28px 24px 40px 24px;
 }
 
 .page-header { margin-bottom: 24px; }
@@ -604,9 +608,12 @@ tr:last-child td { border-bottom: none; }
   #pagina-bellinha-instrucoes {
     padding: 16px 16px calc(var(--bottom-nav-h) + 16px) 16px;
   }
-  #pagina-crm,
+  #pagina-crm-pipeline,
   #pagina-bellinha-treinamento {
     padding: 12px 0 calc(var(--bottom-nav-h) + 8px) 0;
+  }
+  #pagina-crm-clientes {
+    padding: 16px 16px calc(var(--bottom-nav-h) + 16px) 16px;
   }
   .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .filtros { gap: 8px; }
@@ -866,13 +873,13 @@ body.sidebar-collapsed .submenu-arrow { display: none; }
 
 /* ── CRM Kanban ──────────────────────────────────── */
 
-#pagina-crm {
+#pagina-crm-pipeline {
   display: flex;
   flex-direction: column;
   height: calc(100vh - var(--topbar-h));
 }
 
-#pagina-crm .page-header { flex-shrink: 0; }
+#pagina-crm-pipeline .page-header { flex-shrink: 0; }
 
 .kanban-board {
   display: flex;
@@ -1070,7 +1077,7 @@ body.sidebar-collapsed .submenu-arrow { display: none; }
 .crm-modal-footer button { flex: 1; }
 
 @media (max-width: 768px) {
-  #pagina-crm { height: calc(100vh - var(--topbar-h) - var(--bottom-nav-h) - 32px); /* 16px top + 16px bottom */ }
+  #pagina-crm-pipeline { height: calc(100vh - var(--topbar-h) - var(--bottom-nav-h) - 32px); /* 16px top + 16px bottom */ }
   .kanban-col { flex: 0 0 240px; }
   .kanban-board { padding-bottom: 4px; }
 }

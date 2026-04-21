@@ -82,12 +82,22 @@
           <span class="menu-label">Treinamento</span>
         </li>
       </ul>
-      <li class="menu-item" data-pagina="crm" onclick="navegarPara('crm')">
+      <li class="menu-item menu-parent" onclick="toggleSubmenu('crm')">
         <span class="menu-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg>
         </span>
-        <span class="menu-label">CRM</span>
+        <span class="menu-label">CRM <span class="submenu-arrow" id="arrow-crm">▸</span></span>
       </li>
+      <ul class="submenu" id="submenu-crm">
+        <li class="menu-item menu-sub" data-pagina="crm-pipeline" onclick="navegarPara('crm-pipeline')">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg></span>
+          <span class="menu-label">Pipeline</span>
+        </li>
+        <li class="menu-item menu-sub" data-pagina="crm-clientes" onclick="navegarPara('crm-clientes')">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span class="menu-label">Clientes</span>
+        </li>
+      </ul>
       <li class="menu-item" data-pagina="usuarios" onclick="navegarPara('usuarios')">
         <span class="menu-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -303,14 +313,48 @@
       </div>
     </div>
 
-    <!-- ── Página: CRM ── -->
-    <div id="pagina-crm" style="display:none">
+    <!-- ── Página: CRM — Pipeline ── -->
+    <div id="pagina-crm-pipeline" style="display:none">
       <div class="page-header">
-        <h1>CRM</h1>
-        <span class="page-sub">Pipeline de atendimento</span>
+        <h1>Pipeline</h1>
+        <span class="page-sub">Kanban de atendimento</span>
+      </div>
+      <div class="kanban-board" id="kanban-board"></div>
+    </div>
+
+    <!-- ── Página: CRM — Clientes ── -->
+    <div id="pagina-crm-clientes" style="display:none">
+      <div class="page-header">
+        <h1>Clientes</h1>
+        <span class="page-sub">Todos os contatos do pipeline</span>
       </div>
 
-      <div class="kanban-board" id="kanban-board"></div>
+      <div class="filtros">
+        <label style="font-size:13px;color:var(--text-muted)">Status:</label>
+        <button class="btn-ghost clientes-filtro active" data-filtro="todos" onclick="filtrarClientes('todos')" style="width:auto;padding:6px 16px;font-size:13px">Todos</button>
+        <button class="btn-ghost clientes-filtro" data-filtro="ativo" onclick="filtrarClientes('ativo')" style="width:auto;padding:6px 16px;font-size:13px">Ativos</button>
+        <button class="btn-ghost clientes-filtro" data-filtro="arquivado" onclick="filtrarClientes('arquivado')" style="width:auto;padding:6px 16px;font-size:13px">Arquivados</button>
+        <input type="text" id="clientes-busca" placeholder="Buscar por nome ou telefone..." oninput="renderizarClientes()" style="margin-bottom:0;width:auto;flex:1;min-width:180px;padding:7px 14px;font-size:13px">
+      </div>
+
+      <div class="section" style="padding:0;overflow:hidden">
+        <div class="table-scroll">
+          <table id="clientes-tabela">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>Etapa</th>
+                <th>Observação</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="clientes-tbody"></tbody>
+          </table>
+        </div>
+        <div id="clientes-vazio" style="display:none;padding:32px;text-align:center;color:var(--text-muted);font-size:14px">Nenhum cliente encontrado</div>
+      </div>
     </div>
 
     <!-- Modal novo card -->

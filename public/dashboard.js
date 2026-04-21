@@ -72,7 +72,8 @@ function navegarPara(pagina) {
   document.querySelectorAll('#conteudo > div[id^="pagina-"]').forEach(el => el.style.display = 'none')
   $(`pagina-${pagina}`).style.display = 'block'
 
-  if (pagina === 'crm') { $('pagina-crm').style.display = 'flex'; renderizarKanban() }
+  if (pagina === 'crm-pipeline') { $('pagina-crm-pipeline').style.display = 'flex'; renderizarKanban() }
+  if (pagina === 'crm-clientes') renderizarClientes()
   if (pagina === 'usuarios') carregarUsuarios()
   if (pagina === 'bellinha-instrucoes') carregarInstrucoes()
   if (pagina === 'bellinha-treinamento') carregarDocs()
@@ -587,7 +588,7 @@ function renderizarKanban() {
   const board = $('kanban-board')
   if (!board) return
   board.innerHTML = CRM_COLS.map(col => {
-    const cards = crmCards.filter(c => c.coluna === col.id)
+    const cards = crmCards.filter(c => c.coluna === col.id && !c.arquivado)
     return `
       <div class="kanban-col" data-col="${col.id}">
         <div class="kanban-col-header">
@@ -654,6 +655,61 @@ function deletarCardCrm(id) {
   crmCards = crmCards.filter(c => c.id !== id)
   salvarCrm()
   renderizarKanban()
+}
+
+function arquivarCardCrm(id) {
+  const card = crmCards.find(c => c.id === id)
+  if (card) { card.arquivado = !card.arquivado; salvarCrm(); renderizarKanban(); renderizarClientes() }
+}
+
+// ── CRM Clientes ──────────────────────────────────
+
+let clientesFiltro = 'todos'
+
+const CRM_COL_LABEL = Object.fromEntries(CRM_COLS.map(c => [c.id, { label: c.label, cor: c.cor }]))
+
+function filtrarClientes(filtro) {
+  clientesFiltro = filtro
+  document.querySelectorAll('.clientes-filtro').forEach(b => b.classList.toggle('active', b.dataset.filtro === filtro))
+  renderizarClientes()
+}
+
+function renderizarClientes() {
+  const busca = ($('clientes-busca')?.value || '').toLowerCase()
+  let lista = [...crmCards]
+  if (clientesFiltro === 'ativo') lista = lista.filter(c => !c.arquivado)
+  if (clientesFiltro === 'arquivado') lista = lista.filter(c => c.arquivado)
+  if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca) || (c.telefone || '').includes(busca))
+
+  const tbody = $('clientes-tbody')
+  const vazio = $('clientes-vazio')
+  const tabela = $('clientes-tabela')
+  if (!tbody) return
+
+  if (!lista.length) {
+    tbody.innerHTML = ''
+    tabela.style.display = 'none'
+    vazio.style.display = 'block'
+    return
+  }
+  tabela.style.display = ''
+  vazio.style.display = 'none'
+
+  tbody.innerHTML = lista.map(c => {
+    const col = CRM_COL_LABEL[c.coluna] || { label: c.coluna, cor: '#8C8880' }
+    const arquivado = c.arquivado
+    return `<tr>
+      <td style="font-weight:500">${esc(c.nome)}</td>
+      <td style="color:var(--text-muted)">${esc(c.telefone || '—')}</td>
+      <td><span class="tag" style="background:${col.cor}22;color:${col.cor};border-color:${col.cor}33">${esc(col.label)}</span></td>
+      <td style="color:var(--text-muted);font-size:13px;max-width:220px">${esc(c.nota || '—')}</td>
+      <td><span class="tag" style="${arquivado ? 'background:rgba(217,90,90,0.1);color:#d95a5a;border-color:rgba(217,90,90,0.2)' : 'background:rgba(122,140,95,0.1);color:var(--accent);border-color:rgba(122,140,95,0.2)'}">${arquivado ? 'Arquivado' : 'Ativo'}</span></td>
+      <td style="white-space:nowrap;text-align:right">
+        <button onclick="arquivarCardCrm('${c.id}')" style="width:auto;padding:5px 12px;font-size:12px;background:transparent;color:var(--text-muted);border:1.5px solid var(--border);box-shadow:none" title="${arquivado ? 'Reativar' : 'Arquivar'}">${arquivado ? 'Reativar' : 'Arquivar'}</button>
+        <button onclick="deletarCardCrm('${c.id}');renderizarClientes()" style="width:auto;padding:5px 10px;font-size:12px;background:transparent;color:#d95a5a;border:1.5px solid rgba(217,90,90,0.28);box-shadow:none;margin-left:6px" title="Excluir">Excluir</button>
+      </td>
+    </tr>`
+  }).join('')
 }
 
 // Drag & drop
