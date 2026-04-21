@@ -513,12 +513,15 @@ tr:last-child td { border-bottom: none; }
 
 /* ── Treinamento Bellinha ────────────────────────── */
 
+#pagina-bellinha-treinamento {
+  margin-right: -24px;
+  margin-bottom: -40px;
+}
+
 .treino-layout {
   display: flex;
   gap: 14px;
   height: calc(100vh - 68px - 60px);
-  margin-right: -24px;
-  margin-bottom: -40px;
 }
 
 .treino-sidebar {
