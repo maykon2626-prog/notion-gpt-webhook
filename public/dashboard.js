@@ -65,6 +65,7 @@ function navegarPara(pagina) {
   $(`pagina-${pagina}`).style.display = 'block'
 
   if (pagina === 'usuarios') carregarUsuarios()
+  if (pagina === 'crm') renderizarKanban()
   if (window.innerWidth <= 768) fecharSidebar()
 }
 
@@ -280,6 +281,123 @@ async function removerUsuario(numero, btn) {
   const r = await api(`/usuarios/${numero}`, { method: 'DELETE' })
   if (!r.ok) { btn.disabled = false; btn.textContent = 'Remover'; return }
   carregarUsuarios()
+}
+
+// ── CRM Kanban ────────────────────────────────────
+
+const CRM_COLS = [
+  { id: 'novo',      label: 'Novo Lead',        cor: '#7A8C5F' },
+  { id: 'contato',   label: 'Em Contato',        cor: '#4A8FA8' },
+  { id: 'proposta',  label: 'Proposta Enviada',  cor: '#9B7FC2' },
+  { id: 'negociacao',label: 'Negociação',        cor: '#D4883A' },
+  { id: 'fechado',   label: 'Fechado',           cor: '#3AAD5E' },
+]
+
+let crmCards = JSON.parse(localStorage.getItem('crm_cards') || '[]')
+let crmColAtiva = 'novo'
+let crmDragId = null
+let crmEditId = null
+
+function salvarCrm() {
+  localStorage.setItem('crm_cards', JSON.stringify(crmCards))
+}
+
+function renderizarKanban() {
+  const board = $('kanban-board')
+  if (!board) return
+  board.innerHTML = CRM_COLS.map(col => {
+    const cards = crmCards.filter(c => c.coluna === col.id)
+    return `
+      <div class="kanban-col" data-col="${col.id}">
+        <div class="kanban-col-header">
+          <span class="kanban-col-title">
+            <span class="kanban-col-dot" style="background:${col.cor}"></span>
+            ${esc(col.label)}
+          </span>
+          <span class="kanban-col-count">${cards.length}</span>
+        </div>
+        <div class="kanban-cards" id="col-${col.id}"
+          ondragover="crmDragOver(event)"
+          ondragleave="crmDragLeave(event)"
+          ondrop="crmDrop(event,'${col.id}')">
+          ${cards.map(c => crmCardHtml(c)).join('')}
+        </div>
+        <button class="kanban-add-btn" onclick="abrirModalCrm('${col.id}')">+ Adicionar</button>
+      </div>`
+  }).join('')
+}
+
+function crmCardHtml(c) {
+  return `
+    <div class="kanban-card" id="card-${c.id}" draggable="true"
+      ondragstart="crmDragStart(event,'${c.id}')"
+      ondragend="crmDragEnd(event)">
+      <button class="kanban-card-delete" onclick="deletarCardCrm('${c.id}')" title="Remover">×</button>
+      <div class="kanban-card-name">${esc(c.nome)}</div>
+      ${c.telefone ? `<div class="kanban-card-phone">📱 ${esc(c.telefone)}</div>` : ''}
+      ${c.nota ? `<div class="kanban-card-note">${esc(c.nota)}</div>` : ''}
+    </div>`
+}
+
+function abrirModalCrm(colId) {
+  crmColAtiva = colId
+  crmEditId = null
+  $('crm-modal-titulo').textContent = 'Novo lead'
+  $('crm-nome').value = ''
+  $('crm-telefone').value = ''
+  $('crm-nota').value = ''
+  $('crm-modal-bg').classList.add('open')
+  setTimeout(() => $('crm-nome').focus(), 50)
+}
+
+function fecharModalCrm(e) {
+  if (e && e.target !== $('crm-modal-bg')) return
+  $('crm-modal-bg').classList.remove('open')
+}
+
+function salvarCardCrm() {
+  const nome = $('crm-nome').value.trim()
+  if (!nome) { $('crm-nome').focus(); return }
+  if (crmEditId) {
+    const idx = crmCards.findIndex(c => c.id === crmEditId)
+    if (idx >= 0) { crmCards[idx].nome = nome; crmCards[idx].telefone = $('crm-telefone').value.trim(); crmCards[idx].nota = $('crm-nota').value.trim() }
+  } else {
+    crmCards.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2), nome, telefone: $('crm-telefone').value.trim(), nota: $('crm-nota').value.trim(), coluna: crmColAtiva })
+  }
+  salvarCrm()
+  $('crm-modal-bg').classList.remove('open')
+  renderizarKanban()
+}
+
+function deletarCardCrm(id) {
+  crmCards = crmCards.filter(c => c.id !== id)
+  salvarCrm()
+  renderizarKanban()
+}
+
+// Drag & drop
+function crmDragStart(e, id) {
+  crmDragId = id
+  e.dataTransfer.effectAllowed = 'move'
+  setTimeout(() => { const el = document.getElementById('card-' + id); if (el) el.classList.add('dragging') }, 0)
+}
+function crmDragEnd(e) {
+  document.querySelectorAll('.kanban-card').forEach(el => el.classList.remove('dragging'))
+}
+function crmDragOver(e) {
+  e.preventDefault()
+  e.currentTarget.classList.add('drag-over')
+}
+function crmDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over')
+}
+function crmDrop(e, colId) {
+  e.preventDefault()
+  e.currentTarget.classList.remove('drag-over')
+  if (!crmDragId) return
+  const card = crmCards.find(c => c.id === crmDragId)
+  if (card) { card.coluna = colId; salvarCrm(); renderizarKanban() }
+  crmDragId = null
 }
 
 // ── Trocar senha ──────────────────────────────────
