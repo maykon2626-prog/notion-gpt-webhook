@@ -545,7 +545,7 @@ body.sidebar-collapsed .submenu-arrow { display: none; }
 #pagina-crm {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--topbar-h) - 32px);
+  height: calc(100vh - 68px); /* 28px top + 40px bottom padding do #conteudo */
 }
 
 #pagina-crm .page-header { flex-shrink: 0; }
@@ -746,7 +746,7 @@ body.sidebar-collapsed .submenu-arrow { display: none; }
 .crm-modal-footer button { flex: 1; }
 
 @media (max-width: 768px) {
-  #pagina-crm { height: calc(100vh - var(--topbar-h) - var(--bottom-nav-h) - 32px); }
+  #pagina-crm { height: calc(100vh - var(--topbar-h) - var(--bottom-nav-h) - 32px); /* 16px top + 16px bottom */ }
   .kanban-col { flex: 0 0 240px; }
   .kanban-board { padding-bottom: 4px; }
 }
