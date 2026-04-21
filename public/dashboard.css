@@ -361,13 +361,19 @@ body.sidebar-collapsed .menu-icon svg { width: 20px; height: 20px; }
 
 #conteudo {
   margin-left: var(--sidebar-w);
-  padding: 0 0 0 24px; /* topbar e páginas controlam o espaçamento próprio */
+  padding: 0;
   min-height: 100vh;
   transition: margin-left .25s cubic-bezier(.4,0,.2,1);
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
+}
+
+/* Páginas com padding padrão */
+#pagina-analytics,
+#pagina-usuarios,
+#pagina-configuracoes,
+#pagina-bellinha-instrucoes {
+  padding: 28px 24px 40px 24px;
 }
 
 /* ── Topbar desktop ─────────────────────────────── */
@@ -461,20 +467,10 @@ body.sidebar-collapsed .menu-icon svg { width: 20px; height: 20px; }
 .user-dropdown-item.danger:hover { background: rgba(217,90,90,0.06); }
 .user-dropdown-divider { height: 1px; background: rgba(232,224,214,0.5); margin: 4px 0; }
 
-/* Páginas com padding padrão */
-#pagina-analytics,
-#pagina-usuarios,
-#pagina-configuracoes,
-#pagina-bellinha-instrucoes {
-  padding: 28px 24px 40px 0;
-  flex: 1;
-}
-
 /* Páginas full-width sem padding direito */
 #pagina-crm,
 #pagina-bellinha-treinamento {
-  padding: 20px 0 0 0;
-  flex: 1;
+  padding: 20px 0 0 24px;
 }
 
 .page-header { margin-bottom: 24px; }
@@ -599,10 +595,8 @@ tr:last-child td { border-bottom: none; }
   .topbar-mobile { display: flex; }
   .topbar-desktop { display: none; }
   .bottom-nav { display: flex; }
-  #conteudo {
-    margin-left: 0;
-    padding: 0;
-  }
+  #conteudo { margin-left: 0; padding: 0; }
+  body.sidebar-collapsed #conteudo { margin-left: 0; }
   #pagina-analytics,
   #pagina-usuarios,
   #pagina-configuracoes,
@@ -613,7 +607,6 @@ tr:last-child td { border-bottom: none; }
   #pagina-bellinha-treinamento {
     padding: 12px 0 calc(var(--bottom-nav-h) + 8px) 0;
   }
-  body.sidebar-collapsed #conteudo { margin-left: 0; }
   .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .filtros { gap: 8px; }
   .filtros label { flex-direction: column; align-items: flex-start; gap: 3px; }
