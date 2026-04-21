@@ -516,11 +516,15 @@ tr:last-child td { border-bottom: none; }
 .treino-layout {
   display: flex;
   gap: 14px;
-  height: calc(100vh - 68px - 60px); /* 60px = page-header */
+  height: calc(100vh - 68px - 60px);
+  margin: 0 -24px -40px; /* cancela padding do #conteudo nas laterais e embaixo */
+  padding: 0 24px 24px;
 }
 
 .treino-sidebar {
-  width: 240px;
+  width: 28%;
+  min-width: 200px;
+  max-width: 320px;
   flex-shrink: 0;
   background: var(--surface);
   backdrop-filter: var(--blur);
