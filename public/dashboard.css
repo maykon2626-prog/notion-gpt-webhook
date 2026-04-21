@@ -513,13 +513,23 @@ tr:last-child td { border-bottom: none; }
 
 /* ── CRM Kanban ──────────────────────────────────── */
 
+#pagina-crm {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-h) - 32px);
+}
+
+#pagina-crm .page-header { flex-shrink: 0; }
+
 .kanban-board {
   display: flex;
   gap: 14px;
   overflow-x: auto;
-  padding-bottom: 12px;
-  align-items: flex-start;
+  padding-bottom: 4px;
+  align-items: stretch;
   -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
 }
 
 .kanban-col {
@@ -532,8 +542,7 @@ tr:last-child td { border-bottom: none; }
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 220px);
-  min-height: 160px;
+  min-height: 0;
 }
 
 .kanban-col-header {
@@ -708,6 +717,7 @@ tr:last-child td { border-bottom: none; }
 .crm-modal-footer button { flex: 1; }
 
 @media (max-width: 768px) {
-  .kanban-col { flex: 0 0 240px; max-height: none; }
-  .kanban-board { padding-bottom: 8px; }
+  #pagina-crm { height: calc(100vh - var(--topbar-h) - var(--bottom-nav-h) - 32px); }
+  .kanban-col { flex: 0 0 240px; }
+  .kanban-board { padding-bottom: 4px; }
 }

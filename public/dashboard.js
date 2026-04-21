@@ -64,8 +64,8 @@ function navegarPara(pagina) {
   document.querySelectorAll('#conteudo > div[id^="pagina-"]').forEach(el => el.style.display = 'none')
   $(`pagina-${pagina}`).style.display = 'block'
 
+  if (pagina === 'crm') { $('pagina-crm').style.display = 'flex'; renderizarKanban() }
   if (pagina === 'usuarios') carregarUsuarios()
-  if (pagina === 'crm') renderizarKanban()
   if (window.innerWidth <= 768) fecharSidebar()
 }
 
