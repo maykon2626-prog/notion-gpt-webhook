@@ -513,8 +513,10 @@ tr:last-child td { border-bottom: none; }
 
 /* ── Treinamento Bellinha ────────────────────────── */
 
-#pagina-bellinha-treinamento {
-  margin-right: -24px;
+/* Páginas que ocupam toda a largura disponível */
+#pagina-bellinha-treinamento,
+#pagina-crm {
+  width: calc(100% + 24px);
   margin-bottom: -40px;
 }
 
@@ -758,7 +760,7 @@ body.sidebar-collapsed .submenu-arrow { display: none; }
 #pagina-crm {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 68px); /* 28px top + 40px bottom padding do #conteudo */
+  height: calc(100vh - 68px);
 }
 
 #pagina-crm .page-header { flex-shrink: 0; }
