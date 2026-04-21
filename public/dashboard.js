@@ -188,7 +188,7 @@ async function abrirApp() {
   if (r.status === 401) { sessionStorage.removeItem('dash_token'); tokenAtual = ''; return }
   const data = await r.json()
   $('login').style.display = 'none'
-  $('app').style.display = 'flex'
+  $('app').style.display = 'block'
   preencherTopbar()
   renderizar(data)
 }

@@ -276,7 +276,7 @@ button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 /* ── Sidebar colapsada ──────────────────────────── */
 
 body.sidebar-collapsed #sidebar { width: 60px; }
-body.sidebar-collapsed #conteudo { margin-left: 60px; }
+body.sidebar-collapsed #conteudo { margin-left: 60px; width: calc(100% - 60px); }
 body.sidebar-collapsed .sidebar-logo-wrap { display: none; }
 body.sidebar-collapsed .sidebar-bottom-menu .menu-label { display: none; }
 body.sidebar-collapsed .sidebar-bottom-menu .menu-item { justify-content: center; padding: 13px 0; }
@@ -363,7 +363,8 @@ body.sidebar-collapsed .menu-icon svg { width: 20px; height: 20px; }
   margin-left: var(--sidebar-w);
   padding: 0;
   min-height: 100vh;
-  transition: margin-left .25s cubic-bezier(.4,0,.2,1);
+  width: calc(100% - var(--sidebar-w));
+  transition: margin-left .25s cubic-bezier(.4,0,.2,1), width .25s cubic-bezier(.4,0,.2,1);
   position: relative;
   z-index: 1;
 }
@@ -595,8 +596,8 @@ tr:last-child td { border-bottom: none; }
   .topbar-mobile { display: flex; }
   .topbar-desktop { display: none; }
   .bottom-nav { display: flex; }
-  #conteudo { margin-left: 0; padding: 0; }
-  body.sidebar-collapsed #conteudo { margin-left: 0; }
+  #conteudo { margin-left: 0; padding: 0; width: 100%; }
+  body.sidebar-collapsed #conteudo { margin-left: 0; width: 100%; }
   #pagina-analytics,
   #pagina-usuarios,
   #pagina-configuracoes,
