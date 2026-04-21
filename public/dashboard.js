@@ -317,44 +317,224 @@ async function salvarInstrucoes() {
   mostrarErro('ok-instrucoes', 'Salvo! A Bellinha já usa as novas instruções.')
 }
 
+// ── Treinamento Bellinha ──────────────────────────
+
+let treinoPastas = {}       // { pasta: [{arquivo, nome, chunks, preview}] }
+let treinoArquivoAtivo = null
+let treinoModalModo = null  // 'doc' | 'pasta'
+
 async function carregarDocs() {
   const r = await api('/bellinha/docs')
   if (!r.ok) return
-  const docs = await r.json()
-  $('docs-lista').innerHTML = docs.length
-    ? docs.map(d => `
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(232,224,214,0.35)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px">${esc(d.arquivo)}</div>
-          <div style="font-size:12px;color:var(--text-muted)">${esc(d.chunks)} chunk${d.chunks !== 1 ? 's' : ''} · ${esc(d.preview)}…</div>
+  treinoPastas = await r.json()
+  renderizarArvore()
+}
+
+function renderizarArvore() {
+  const arvore = $('treino-arvore')
+  if (!arvore) return
+  const pastas = Object.keys(treinoPastas).sort()
+
+  // Atualiza datalist para autocomplete no modal
+  const dl = $('pastas-list')
+  if (dl) dl.innerHTML = pastas.filter(p => p !== '(raiz)').map(p => `<option value="${esc(p)}">`).join('')
+
+  if (!pastas.length) {
+    arvore.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:12px 10px">Nenhum documento ainda.</p>'
+    return
+  }
+
+  arvore.innerHTML = pastas.map(pasta => {
+    const docs = treinoPastas[pasta]
+    const isPastaReal = pasta !== '(raiz)'
+    return `
+      <div class="treino-pasta${isPastaReal ? ' open' : ''}" data-pasta="${esc(pasta)}">
+        ${isPastaReal ? `
+        <div class="treino-pasta-header" onclick="togglePasta(this)">
+          <span class="treino-pasta-arrow">▸</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--accent)"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(pasta)}</span>
+          <span class="treino-pasta-acoes">
+            <button class="treino-pasta-acao" title="Renomear pasta" onclick="event.stopPropagation();renomearPasta('${esc(pasta)}')">✏️</button>
+            <button class="treino-pasta-acao danger" title="Excluir pasta" onclick="event.stopPropagation();deletarPasta('${esc(pasta)}')">🗑</button>
+          </span>
+        </div>` : ''}
+        <div class="treino-pasta-docs">
+          ${docs.map(d => `
+            <div class="treino-doc-item${treinoArquivoAtivo === d.arquivo ? ' active' : ''}"
+              onclick="abrirDoc('${esc(d.arquivo)}')" data-arquivo="${esc(d.arquivo)}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.nome)}</span>
+              <button class="treino-doc-delete" onclick="event.stopPropagation();deletarDocItem('${esc(d.arquivo)}')" title="Excluir">×</button>
+            </div>`).join('')}
         </div>
-        <button class="btn-danger" style="flex-shrink:0" onclick="deletarDoc('${esc(d.arquivo)}', this)">Remover</button>
-      </div>`).join('')
-    : '<p style="font-size:13px;color:var(--text-muted)">Nenhum documento indexado.</p>'
+      </div>`
+  }).join('')
 }
 
-async function adicionarDoc() {
-  const titulo = $('doc-titulo').value.trim()
-  const conteudo = $('doc-conteudo').value.trim()
-  mostrarErro('erro-doc', '')
-  mostrarErro('ok-doc', '')
-  if (!titulo) return mostrarErro('erro-doc', 'Informe o título')
-  if (!conteudo) return mostrarErro('erro-doc', 'Informe o conteúdo')
-  setCarregando('btn-add-doc', true, 'Indexar documento')
-  const r = await api('/bellinha/docs', { method: 'POST', body: JSON.stringify({ titulo, conteudo }) })
+function togglePasta(header) {
+  header.closest('.treino-pasta').classList.toggle('open')
+}
+
+async function abrirDoc(arquivo) {
+  treinoArquivoAtivo = arquivo
+  renderizarArvore()
+  mostrarErro('ok-treino', '')
+  mostrarErro('erro-treino', '')
+
+  const partes = arquivo.split('/')
+  const nome = partes[partes.length - 1].replace(/\.txt$/, '')
+  $('treino-doc-nome').value = nome
+  $('treino-doc-conteudo').value = 'Carregando...'
+  $('treino-doc-info').textContent = ''
+  $('treino-editor-content').style.display = 'flex'
+  document.querySelector('.treino-editor-empty').style.display = 'none'
+
+  const r = await api('/bellinha/docs/conteudo?arquivo=' + encodeURIComponent(arquivo))
+  if (!r.ok) { $('treino-doc-conteudo').value = ''; return }
   const data = await r.json()
-  setCarregando('btn-add-doc', false, 'Indexar documento')
-  if (!r.ok) return mostrarErro('erro-doc', data.erro || 'Erro ao indexar')
-  mostrarErro('ok-doc', `Indexado com sucesso (${data.chunks} chunk${data.chunks !== 1 ? 's' : ''})`)
-  $('doc-titulo').value = ''; $('doc-conteudo').value = ''
+  $('treino-doc-conteudo').value = data.conteudo
+  $('treino-doc-info').textContent = `${data.conteudo.split(/\s+/).length} palavras`
+}
+
+function cancelarEdicao() {
+  treinoArquivoAtivo = null
+  renderizarArvore()
+  $('treino-editor-content').style.display = 'none'
+  document.querySelector('.treino-editor-empty').style.display = 'flex'
+}
+
+async function salvarDoc() {
+  if (!treinoArquivoAtivo) return
+  const conteudo = $('treino-doc-conteudo').value.trim()
+  const novoNome = $('treino-doc-nome').value.trim()
+  mostrarErro('ok-treino', '')
+  mostrarErro('erro-treino', '')
+  if (!conteudo) return mostrarErro('erro-treino', 'Conteúdo vazio')
+
+  setCarregando('btn-salvar-doc', true, 'Salvar e reindexar')
+
+  // Renomear se nome mudou
+  const partes = treinoArquivoAtivo.split('/')
+  const nomAtual = partes[partes.length - 1].replace(/\.txt$/, '')
+  let arquivoFinal = treinoArquivoAtivo
+
+  if (novoNome && novoNome !== nomAtual) {
+    partes[partes.length - 1] = novoNome + '.txt'
+    arquivoFinal = partes.join('/')
+    await api('/bellinha/docs/renomear', { method: 'POST', body: JSON.stringify({ de: treinoArquivoAtivo, para: arquivoFinal, tipo: 'doc' }) })
+    treinoArquivoAtivo = arquivoFinal
+  }
+
+  const r = await api('/bellinha/docs/conteudo', { method: 'PUT', body: JSON.stringify({ arquivo: arquivoFinal, conteudo }) })
+  const data = await r.json()
+  setCarregando('btn-salvar-doc', false, 'Salvar e reindexar')
+  if (!r.ok) return mostrarErro('erro-treino', data.erro || 'Erro ao salvar')
+  mostrarErro('ok-treino', `Salvo (${data.chunks} chunks)`)
+  $('treino-doc-info').textContent = `${conteudo.split(/\s+/).length} palavras`
   carregarDocs()
 }
 
-async function deletarDoc(arquivo, btn) {
-  if (!confirm(`Remover "${arquivo}"?`)) return
-  btn.disabled = true; btn.textContent = '...'
+async function deletarDocItem(arquivo) {
+  if (!confirm(`Excluir "${arquivo}"?`)) return
   await api('/bellinha/docs/' + encodeURIComponent(arquivo), { method: 'DELETE' })
+  if (treinoArquivoAtivo === arquivo) cancelarEdicao()
   carregarDocs()
+}
+
+async function deletarDocAtivo() {
+  if (!treinoArquivoAtivo) return
+  await deletarDocItem(treinoArquivoAtivo)
+}
+
+async function deletarPasta(pasta) {
+  if (!confirm(`Excluir a pasta "${pasta}" e todos os documentos dentro?`)) return
+  await api('/bellinha/docs/pasta/' + encodeURIComponent(pasta), { method: 'DELETE' })
+  if (treinoArquivoAtivo?.startsWith(pasta + '/')) cancelarEdicao()
+  carregarDocs()
+}
+
+function renomearPasta(pasta) {
+  const novo = prompt(`Renomear pasta "${pasta}" para:`, pasta)
+  if (!novo || novo === pasta) return
+  api('/bellinha/docs/renomear', { method: 'POST', body: JSON.stringify({ de: pasta, para: novo.trim(), tipo: 'pasta' }) })
+    .then(() => carregarDocs())
+}
+
+// Modal novo doc / nova pasta
+function modalNovoDoc() {
+  treinoModalModo = 'doc'
+  $('treino-modal-titulo').textContent = 'Novo documento'
+  $('treino-modal-pasta-wrap').style.display = 'block'
+  $('treino-modal-label').textContent = 'Nome do documento'
+  $('treino-modal-pasta').value = ''
+  $('treino-modal-nome').value = ''
+  mostrarErro('erro-modal-treino', '')
+  $('treino-modal-bg').classList.add('open')
+  setTimeout(() => $('treino-modal-pasta').focus(), 50)
+}
+
+function modalNovaPasta() {
+  treinoModalModo = 'pasta'
+  $('treino-modal-titulo').textContent = 'Nova pasta'
+  $('treino-modal-pasta-wrap').style.display = 'none'
+  $('treino-modal-label').textContent = 'Nome da pasta'
+  $('treino-modal-nome').value = ''
+  mostrarErro('erro-modal-treino', '')
+  $('treino-modal-bg').classList.add('open')
+  setTimeout(() => $('treino-modal-nome').focus(), 50)
+}
+
+function fecharModalTreino(e) {
+  if (e && e.target !== $('treino-modal-bg')) return
+  $('treino-modal-bg').classList.remove('open')
+}
+
+async function confirmarModalTreino() {
+  mostrarErro('erro-modal-treino', '')
+  if (treinoModalModo === 'pasta') {
+    const nome = $('treino-modal-nome').value.trim()
+    if (!nome) return mostrarErro('erro-modal-treino', 'Informe o nome da pasta')
+    // Cria um placeholder vazio só para abrir a pasta; doc real vem depois
+    $('treino-modal-bg').classList.remove('open')
+    // Abre modal de novo doc já com a pasta preenchida
+    treinoModalModo = 'doc'
+    $('treino-modal-titulo').textContent = 'Novo documento'
+    $('treino-modal-pasta-wrap').style.display = 'block'
+    $('treino-modal-label').textContent = 'Nome do documento'
+    $('treino-modal-pasta').value = nome
+    $('treino-modal-nome').value = ''
+    $('treino-modal-bg').classList.add('open')
+    setTimeout(() => $('treino-modal-nome').focus(), 50)
+    return
+  }
+
+  // Modo doc
+  const pasta = $('treino-modal-pasta').value.trim()
+  const nome = $('treino-modal-nome').value.trim()
+  if (!nome) return mostrarErro('erro-modal-treino', 'Informe o nome do documento')
+
+  const partes = [pasta, nome + '.txt'].filter(Boolean)
+  const arquivo = partes.join('/')
+  $('treino-modal-bg').classList.remove('open')
+
+  // Abre editor em branco para o novo doc
+  treinoArquivoAtivo = arquivo
+  // Garante que pasta exista localmente para renderizar imediatamente
+  const pastaNome = pasta || '(raiz)'
+  if (!treinoPastas[pastaNome]) treinoPastas[pastaNome] = []
+  const jaExiste = treinoPastas[pastaNome].some(d => d.arquivo === arquivo)
+  if (!jaExiste) treinoPastas[pastaNome].push({ arquivo, nome, chunks: 0, preview: '' })
+  renderizarArvore()
+
+  $('treino-doc-nome').value = nome
+  $('treino-doc-conteudo').value = ''
+  $('treino-doc-info').textContent = 'Novo documento'
+  mostrarErro('ok-treino', '')
+  mostrarErro('erro-treino', '')
+  $('treino-editor-content').style.display = 'flex'
+  document.querySelector('.treino-editor-empty').style.display = 'none'
+  $('treino-doc-conteudo').focus()
 }
 
 // ── CRM Kanban ────────────────────────────────────

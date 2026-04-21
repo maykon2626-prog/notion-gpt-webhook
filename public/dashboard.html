@@ -217,28 +217,75 @@
 
     <!-- ── Página: Bellinha — Treinamento ── -->
     <div id="pagina-bellinha-treinamento" style="display:none">
-      <div class="page-header">
+      <div class="page-header" style="margin-bottom:16px">
         <h1>Treinamento</h1>
-        <span class="page-sub">Documentos da base de conhecimento</span>
+        <span class="page-sub">Base de conhecimento da Bellinha</span>
       </div>
 
-      <div class="section" style="max-width:720px">
-        <h2>Adicionar documento</h2>
-        <input type="text" id="doc-titulo" placeholder="Título do documento (ex: Arya - Tabela de Preços)" style="margin-bottom:10px">
-        <textarea id="doc-conteudo" rows="8"
-          style="width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:14px;font-size:14px;font-family:inherit;color:var(--text);background:rgba(255,255,255,0.65);resize:vertical;line-height:1.6;outline:none;margin-bottom:12px;transition:border-color .2s"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
-          placeholder="Cole o conteúdo do documento aqui..."></textarea>
-        <div style="display:flex;gap:10px;align-items:center">
-          <button onclick="adicionarDoc()" id="btn-add-doc" style="width:auto;padding:11px 28px">Indexar documento</button>
-          <span id="ok-doc" class="form-ok" style="min-height:auto"></span>
-          <span id="erro-doc" class="form-erro" style="min-height:auto"></span>
+      <div class="treino-layout">
+        <!-- Painel esquerdo: árvore de pastas -->
+        <div class="treino-sidebar">
+          <div class="treino-sidebar-header">
+            <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Documentos</span>
+            <div style="display:flex;gap:6px">
+              <button class="treino-icon-btn" title="Nova pasta" onclick="modalNovaPasta()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+              </button>
+              <button class="treino-icon-btn" title="Novo documento" onclick="modalNovoDoc()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+              </button>
+            </div>
+          </div>
+          <div id="treino-arvore"></div>
+        </div>
+
+        <!-- Painel direito: editor -->
+        <div class="treino-editor" id="treino-editor">
+          <div class="treino-editor-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-muted);opacity:.4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p>Selecione um documento para editar</p>
+          </div>
+          <div class="treino-editor-content" id="treino-editor-content" style="display:none">
+            <div class="treino-editor-topbar">
+              <input type="text" id="treino-doc-nome" placeholder="Nome do documento" style="flex:1;margin-bottom:0;font-weight:500">
+              <button class="treino-icon-btn treino-icon-btn-danger" title="Excluir documento" onclick="deletarDocAtivo()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </div>
+            <textarea id="treino-doc-conteudo"
+              placeholder="Conteúdo do documento..."
+              style="flex:1;width:100%;padding:16px;border:1.5px solid var(--border);border-radius:14px;font-size:14px;font-family:inherit;color:var(--text);background:rgba(255,255,255,0.65);resize:none;line-height:1.7;outline:none;transition:border-color .2s"
+              onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <div class="treino-editor-footer">
+              <span id="treino-doc-info" style="font-size:12px;color:var(--text-muted)"></span>
+              <div style="display:flex;gap:8px">
+                <span id="ok-treino" class="form-ok" style="min-height:auto;align-self:center"></span>
+                <span id="erro-treino" class="form-erro" style="min-height:auto;align-self:center"></span>
+                <button class="btn-ghost" onclick="cancelarEdicao()" style="width:auto;padding:9px 18px;font-size:13px">Cancelar</button>
+                <button onclick="salvarDoc()" id="btn-salvar-doc" style="width:auto;padding:9px 22px;font-size:13px">Salvar e reindexar</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="section">
-        <h2>Documentos indexados</h2>
-        <div id="docs-lista"></div>
+    <!-- Modal novo doc / nova pasta -->
+    <div class="crm-modal-bg" id="treino-modal-bg" onclick="fecharModalTreino(event)">
+      <div class="crm-modal">
+        <h3 id="treino-modal-titulo">Novo documento</h3>
+        <div id="treino-modal-pasta-wrap">
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">Pasta</label>
+          <input type="text" id="treino-modal-pasta" placeholder="Ex: Produtos" list="pastas-list" style="margin-bottom:10px">
+          <datalist id="pastas-list"></datalist>
+        </div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px" id="treino-modal-label">Nome do documento</label>
+        <input type="text" id="treino-modal-nome" placeholder="Ex: Noah Beach - Tabela de Preços" style="margin-bottom:0">
+        <div id="erro-modal-treino" class="form-erro" style="min-height:16px;margin-top:6px"></div>
+        <div class="crm-modal-footer" style="margin-top:14px">
+          <button class="btn-ghost" onclick="fecharModalTreino()">Cancelar</button>
+          <button onclick="confirmarModalTreino()" id="btn-modal-treino">Criar</button>
+        </div>
       </div>
     </div>
 
