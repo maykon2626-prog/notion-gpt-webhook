@@ -46,10 +46,20 @@ function fecharSidebar() {
 // ── Navegação ─────────────────────────────────────
 
 function navegarPara(pagina) {
+  // sidebar menu
   document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'))
-  document.querySelector(`[data-pagina="${pagina}"]`).classList.add('active')
+  const sidebarItem = document.querySelector(`[data-pagina="${pagina}"]`)
+  if (sidebarItem) sidebarItem.classList.add('active')
+
+  // bottom nav
+  document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'))
+  const bottomItem = document.querySelector(`.bottom-nav-item[data-pagina="${pagina}"]`)
+  if (bottomItem) bottomItem.classList.add('active')
+
+  // páginas
   document.querySelectorAll('#conteudo > div[id^="pagina-"]').forEach(el => el.style.display = 'none')
   $(`pagina-${pagina}`).style.display = 'block'
+
   if (pagina === 'usuarios') carregarUsuarios()
   if (window.innerWidth <= 768) fecharSidebar()
 }
@@ -143,6 +153,17 @@ async function abrirApp() {
   renderizar(data)
 }
 
+function logout() {
+  sessionStorage.removeItem('dash_token')
+  tokenAtual = ''
+  $('app').style.display = 'none'
+  document.documentElement.classList.remove('logado')
+  $('login').style.display = ''
+  mostrarLogin()
+  $('input-numero').value = ''
+  $('input-senha-login').value = ''
+}
+
 if (tokenAtual) abrirApp()
 
 // ── Analytics ─────────────────────────────────────
@@ -202,7 +223,7 @@ function renderizar(d) {
     if (graficoHoras) graficoHoras.destroy()
     graficoHoras = new Chart($('grafico-horas'), {
       type: 'bar',
-      data: { labels, datasets: [{ label: 'Mensagens', data: d.por_hora, backgroundColor: '#7A8C5F', borderRadius: 4 }] },
+      data: { labels, datasets: [{ label: 'Mensagens', data: d.por_hora, backgroundColor: '#7A8C5F', borderRadius: 6 }] },
       options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
     })
   }

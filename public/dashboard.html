@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Bellinha — Dashboard</title>
 <link rel="icon" href="https://bellacasaeokada.com.br/wp-content/uploads/fbrfg/favicon-96x96.png">
 <link rel="stylesheet" href="dashboard.css">
@@ -59,7 +59,6 @@
       <img class="sidebar-logo-img" src="https://bellacasaeokada.com.br/wp-content/uploads/2026/02/20-scaled.png" alt="Bella Casa & Okada">
     </div>
 
-
     <ul class="sidebar-menu">
       <li class="menu-item active" data-pagina="analytics" onclick="navegarPara('analytics')">
         <span class="menu-icon">
@@ -87,6 +86,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </span>
         <span class="menu-label">Menu</span>
+      </li>
+      <li class="menu-item" onclick="logout()">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </span>
+        <span class="menu-label">Sair</span>
       </li>
     </ul>
   </nav>
@@ -117,23 +122,20 @@
         <span id="f-label"></span>
       </div>
 
-      <!-- KPIs principais -->
-      <div class="grid grid-4">
+      <div class="grid-4">
         <div class="card"><h3>Corretores</h3><div class="num" id="total-corretores">-</div></div>
         <div class="card"><h3>Mensagens</h3><div class="num" id="total-mensagens">-</div></div>
         <div class="card"><h3>Lacunas Pendentes</h3><div class="num" id="total-lacunas">-</div></div>
         <div class="card"><h3>FAQs Gerados</h3><div class="num" id="total-faqs">-</div></div>
       </div>
 
-      <!-- Tokens -->
-      <div class="grid grid-4" style="margin-bottom:28px">
+      <div class="grid-4" style="margin-bottom:20px">
         <div class="card"><h3>Tokens de Entrada</h3><div class="num" id="tokens-entrada">-</div></div>
         <div class="card"><h3>Tokens de Saída</h3><div class="num" id="tokens-saida">-</div></div>
         <div class="card"><h3>Custo Estimado</h3><div class="num num-sm" id="custo-usd">-</div></div>
         <div class="card" id="card-saldo" style="display:none"><h3>Saldo Restante</h3><div class="num num-sm" id="saldo-usd">-</div></div>
       </div>
 
-      <!-- Corretores + Lacunas lado a lado -->
       <div class="layout-split">
         <div class="section split-main">
           <h2>Corretores mais ativos</h2>
@@ -150,7 +152,6 @@
         </div>
       </div>
 
-      <!-- Imobiliária + Produtos lado a lado -->
       <div class="layout-split">
         <div class="section">
           <h2>Por Imobiliária</h2>
@@ -162,7 +163,6 @@
         </div>
       </div>
 
-      <!-- Gráfico -->
       <div class="section">
         <h2>Mensagens por hora do dia (BRT)</h2>
         <canvas id="grafico-horas" height="80"></canvas>
@@ -214,9 +214,35 @@
         <div id="erro-cfg" class="form-erro"></div>
         <div id="ok-cfg" class="form-ok"></div>
       </div>
+
+      <div class="section cfg-section">
+        <h2>Sessão</h2>
+        <button class="btn-danger" onclick="logout()" style="width:auto;padding:10px 24px">Sair da conta</button>
+      </div>
     </div>
 
   </main>
+
+  <!-- Bottom nav mobile -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item active" data-pagina="analytics" onclick="navegarPara('analytics')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Analytics
+    </button>
+    <button class="bottom-nav-item" data-pagina="usuarios" onclick="navegarPara('usuarios')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Usuários
+    </button>
+    <button class="bottom-nav-item" data-pagina="configuracoes" onclick="navegarPara('configuracoes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Config
+    </button>
+    <button class="bottom-nav-item" onclick="logout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>
+  </nav>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
