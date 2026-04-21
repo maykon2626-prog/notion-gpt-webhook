@@ -74,7 +74,8 @@ function navegarPara(pagina) {
 
   if (pagina === 'crm-pipeline') { $('pagina-crm-pipeline').style.display = 'flex'; renderizarKanban() }
   if (pagina === 'crm-clientes') renderizarClientes()
-  if (pagina === 'usuarios') carregarUsuarios()
+  if (pagina === 'usuarios-administradores') carregarUsuarios()
+  if (pagina === 'usuarios-corretores') carregarCorretores()
   if (pagina === 'bellinha-instrucoes') carregarInstrucoes()
   if (pagina === 'bellinha-treinamento') carregarDocs()
   if (window.innerWidth <= 768) fecharSidebar()
@@ -318,6 +319,60 @@ async function removerUsuario(numero, btn) {
   const r = await api(`/usuarios/${numero}`, { method: 'DELETE' })
   if (!r.ok) { btn.disabled = false; btn.textContent = 'Remover'; return }
   carregarUsuarios()
+}
+
+// ── Corretores ────────────────────────────────────
+
+let corretoresData = []
+
+async function carregarCorretores() {
+  const r = await api('/usuarios/corretores')
+  if (!r.ok) return
+  corretoresData = await r.json()
+  filtrarCorretores()
+}
+
+function filtrarCorretores() {
+  const busca = ($('corretores-busca')?.value || '').toLowerCase()
+  const lista = busca
+    ? corretoresData.filter(c => (c.nome || '').toLowerCase().includes(busca) || (c.numero || '').includes(busca))
+    : corretoresData
+
+  const tbody = $('tb-corretores-full')
+  const vazio = $('corretores-vazio')
+  const tabela = $('corretores-tabela')
+  const total = $('corretores-total')
+  if (!tbody) return
+
+  if (total) total.textContent = `${lista.length} corretor${lista.length !== 1 ? 'es' : ''}`
+
+  if (!lista.length) {
+    tbody.innerHTML = ''
+    tabela.style.display = 'none'
+    vazio.style.display = 'block'
+    return
+  }
+  tabela.style.display = ''
+  vazio.style.display = 'none'
+
+  const formatarData = d => d ? new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'
+  const totalMsgs = lista.reduce((s, c) => s + (c.mensagens?.length || 0), 0)
+
+  tbody.innerHTML = lista.map((c, i) => {
+    const msgs = c.mensagens?.length || 0
+    const pct = totalMsgs ? Math.round(msgs / totalMsgs * 100) : 0
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:13px">${i + 1}</td>
+      <td style="font-weight:500">${c.nome ? esc(c.nome) : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td style="color:var(--text-muted)">📱 ${esc(c.numero || '—')}</td>
+      <td><span class="tag">${esc(c.tipo || '—')}</span></td>
+      <td>
+        <span style="font-weight:500">${msgs}</span>
+        <div class="bar-wrap" style="margin-top:4px;width:80px"><div class="bar" style="width:${pct}%"></div></div>
+      </td>
+      <td style="color:var(--text-muted);font-size:13px">${formatarData(c.atualizado_em)}</td>
+    </tr>`
+  }).join('')
 }
 
 // ── Bellinha ──────────────────────────────────────

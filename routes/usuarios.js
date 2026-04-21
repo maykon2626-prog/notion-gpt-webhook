@@ -50,6 +50,15 @@ router.post('/', autenticar, async (req, res) => {
     return res.json(data)
 })
 
+router.get('/corretores', autenticar, async (req, res) => {
+    const { data, error } = await supabase
+        .from('conversas')
+        .select('numero, nome, tipo, mensagens, atualizado_em')
+        .order('atualizado_em', { ascending: false })
+    if (error) return res.status(500).json({ erro: error.message })
+    return res.json(data || [])
+})
+
 router.delete('/:numero', autenticar, async (req, res) => {
     const { error } = await supabase
         .from('dashboard_usuarios')

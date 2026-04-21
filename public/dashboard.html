@@ -98,12 +98,22 @@
           <span class="menu-label">Clientes</span>
         </li>
       </ul>
-      <li class="menu-item" data-pagina="usuarios" onclick="navegarPara('usuarios')">
+      <li class="menu-item menu-parent" onclick="toggleSubmenu('usuarios')">
         <span class="menu-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </span>
-        <span class="menu-label">Usuários</span>
+        <span class="menu-label">Usuários <span class="submenu-arrow" id="arrow-usuarios">▸</span></span>
       </li>
+      <ul class="submenu" id="submenu-usuarios">
+        <li class="menu-item menu-sub" data-pagina="usuarios-administradores" onclick="navegarPara('usuarios-administradores')">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <span class="menu-label">Administradores</span>
+        </li>
+        <li class="menu-item menu-sub" data-pagina="usuarios-corretores" onclick="navegarPara('usuarios-corretores')">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <span class="menu-label">Corretores</span>
+        </li>
+      </ul>
       <li class="menu-item" data-pagina="configuracoes" onclick="navegarPara('configuracoes')">
         <span class="menu-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -371,15 +381,15 @@
       </div>
     </div>
 
-    <!-- ── Página: Usuários ── -->
-    <div id="pagina-usuarios" style="display:none">
+    <!-- ── Página: Usuários — Administradores ── -->
+    <div id="pagina-usuarios-administradores" style="display:none">
       <div class="page-header">
-        <h1>Usuários</h1>
+        <h1>Administradores</h1>
         <span class="page-sub">Acesso ao Dashboard</span>
       </div>
 
       <div class="section">
-        <h2>Adicionar usuário</h2>
+        <h2>Adicionar administrador</h2>
         <div class="form-grid">
           <input type="text" id="novo-nome" placeholder="Nome">
           <input type="tel" id="novo-numero" placeholder="(45) 99999-9999">
@@ -390,13 +400,45 @@
       </div>
 
       <div class="section">
-        <h2>Usuários cadastrados</h2>
+        <h2>Administradores cadastrados</h2>
         <div class="table-scroll">
           <table>
             <thead><tr><th>Nome</th><th>Número</th><th>Desde</th><th></th></tr></thead>
             <tbody id="tb-usuarios"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- ── Página: Usuários — Corretores ── -->
+    <div id="pagina-usuarios-corretores" style="display:none">
+      <div class="page-header">
+        <h1>Corretores</h1>
+        <span class="page-sub">Corretores que interagem com a Bellinha</span>
+      </div>
+
+      <div class="filtros">
+        <input type="text" id="corretores-busca" placeholder="Buscar por nome ou número..." oninput="filtrarCorretores()" style="margin-bottom:0;width:auto;flex:1;min-width:180px;padding:7px 14px;font-size:13px">
+        <span id="corretores-total" style="font-size:13px;color:var(--text-muted);white-space:nowrap"></span>
+      </div>
+
+      <div class="section" style="padding:0;overflow:hidden">
+        <div class="table-scroll">
+          <table id="corretores-tabela">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nome</th>
+                <th>Número</th>
+                <th>Tipo</th>
+                <th>Mensagens</th>
+                <th>Última atividade</th>
+              </tr>
+            </thead>
+            <tbody id="tb-corretores-full"></tbody>
+          </table>
+        </div>
+        <div id="corretores-vazio" style="display:none;padding:32px;text-align:center;color:var(--text-muted);font-size:14px">Nenhum corretor encontrado</div>
       </div>
     </div>
 

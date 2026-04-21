@@ -371,7 +371,8 @@ body.sidebar-collapsed .menu-icon svg { width: 20px; height: 20px; }
 
 /* Páginas com padding padrão */
 #pagina-analytics,
-#pagina-usuarios,
+#pagina-usuarios-administradores,
+#pagina-usuarios-corretores,
 #pagina-configuracoes,
 #pagina-bellinha-instrucoes {
   padding: 28px 24px 40px 24px;
@@ -603,7 +604,8 @@ tr:last-child td { border-bottom: none; }
   #conteudo { margin-left: 0; padding: 0; width: 100%; }
   body.sidebar-collapsed #conteudo { margin-left: 0; width: 100%; }
   #pagina-analytics,
-  #pagina-usuarios,
+  #pagina-usuarios-administradores,
+  #pagina-usuarios-corretores,
   #pagina-configuracoes,
   #pagina-bellinha-instrucoes {
     padding: 16px 16px calc(var(--bottom-nav-h) + 16px) 16px;
