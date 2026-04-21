@@ -28,6 +28,14 @@ if (localStorage.getItem('sidebar-collapsed') === 'true') {
   document.body.classList.add('sidebar-collapsed')
 }
 
+function toggleSubmenu(id) {
+  const sub = document.getElementById('submenu-' + id)
+  const parent = sub?.previousElementSibling
+  if (!sub) return
+  const open = sub.classList.toggle('open')
+  if (parent) parent.classList.toggle('open', open)
+}
+
 function toggleSidebar() {
   if (window.innerWidth <= 768) {
     fecharSidebar()
@@ -66,6 +74,8 @@ function navegarPara(pagina) {
 
   if (pagina === 'crm') { $('pagina-crm').style.display = 'flex'; renderizarKanban() }
   if (pagina === 'usuarios') carregarUsuarios()
+  if (pagina === 'bellinha-instrucoes') carregarInstrucoes()
+  if (pagina === 'bellinha-treinamento') carregarDocs()
   if (window.innerWidth <= 768) fecharSidebar()
 }
 
@@ -281,6 +291,70 @@ async function removerUsuario(numero, btn) {
   const r = await api(`/usuarios/${numero}`, { method: 'DELETE' })
   if (!r.ok) { btn.disabled = false; btn.textContent = 'Remover'; return }
   carregarUsuarios()
+}
+
+// ── Bellinha ──────────────────────────────────────
+
+async function carregarInstrucoes() {
+  mostrarErro('erro-instrucoes', '')
+  mostrarErro('ok-instrucoes', '')
+  const r = await api('/bellinha/instrucoes')
+  if (!r.ok) return mostrarErro('erro-instrucoes', 'Erro ao carregar')
+  const data = await r.json()
+  $('instrucoes-texto').value = data.instrucoes
+}
+
+async function salvarInstrucoes() {
+  const instrucoes = $('instrucoes-texto').value.trim()
+  mostrarErro('erro-instrucoes', '')
+  mostrarErro('ok-instrucoes', '')
+  if (!instrucoes) return mostrarErro('erro-instrucoes', 'Instruções não podem estar vazias')
+  setCarregando('btn-salvar-instrucoes', true, 'Salvar')
+  const r = await api('/bellinha/instrucoes', { method: 'PUT', body: JSON.stringify({ instrucoes }) })
+  setCarregando('btn-salvar-instrucoes', false, 'Salvar')
+  const data = await r.json()
+  if (!r.ok) return mostrarErro('erro-instrucoes', data.erro || 'Erro ao salvar')
+  mostrarErro('ok-instrucoes', 'Salvo! A Bellinha já usa as novas instruções.')
+}
+
+async function carregarDocs() {
+  const r = await api('/bellinha/docs')
+  if (!r.ok) return
+  const docs = await r.json()
+  $('docs-lista').innerHTML = docs.length
+    ? docs.map(d => `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(232,224,214,0.35)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px">${esc(d.arquivo)}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${esc(d.chunks)} chunk${d.chunks !== 1 ? 's' : ''} · ${esc(d.preview)}…</div>
+        </div>
+        <button class="btn-danger" style="flex-shrink:0" onclick="deletarDoc('${esc(d.arquivo)}', this)">Remover</button>
+      </div>`).join('')
+    : '<p style="font-size:13px;color:var(--text-muted)">Nenhum documento indexado.</p>'
+}
+
+async function adicionarDoc() {
+  const titulo = $('doc-titulo').value.trim()
+  const conteudo = $('doc-conteudo').value.trim()
+  mostrarErro('erro-doc', '')
+  mostrarErro('ok-doc', '')
+  if (!titulo) return mostrarErro('erro-doc', 'Informe o título')
+  if (!conteudo) return mostrarErro('erro-doc', 'Informe o conteúdo')
+  setCarregando('btn-add-doc', true, 'Indexar documento')
+  const r = await api('/bellinha/docs', { method: 'POST', body: JSON.stringify({ titulo, conteudo }) })
+  const data = await r.json()
+  setCarregando('btn-add-doc', false, 'Indexar documento')
+  if (!r.ok) return mostrarErro('erro-doc', data.erro || 'Erro ao indexar')
+  mostrarErro('ok-doc', `Indexado com sucesso (${data.chunks} chunk${data.chunks !== 1 ? 's' : ''})`)
+  $('doc-titulo').value = ''; $('doc-conteudo').value = ''
+  carregarDocs()
+}
+
+async function deletarDoc(arquivo, btn) {
+  if (!confirm(`Remover "${arquivo}"?`)) return
+  btn.disabled = true; btn.textContent = '...'
+  await api('/bellinha/docs/' + encodeURIComponent(arquivo), { method: 'DELETE' })
+  carregarDocs()
 }
 
 // ── CRM Kanban ────────────────────────────────────

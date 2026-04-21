@@ -66,6 +66,22 @@
         </span>
         <span class="menu-label">Analytics</span>
       </li>
+      <li class="menu-item menu-parent" onclick="toggleSubmenu('bellinha')">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M15 5.5a4 4 0 0 1 0 5"/><path d="M17 20c0-2.8-1.5-5.2-4-6.5"/></svg>
+        </span>
+        <span class="menu-label">Bellinha <span class="submenu-arrow" id="arrow-bellinha">▸</span></span>
+      </li>
+      <ul class="submenu" id="submenu-bellinha">
+        <li class="menu-item menu-sub" data-pagina="bellinha-instrucoes" onclick="navegarPara('bellinha-instrucoes')">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span>
+          <span class="menu-label">Instruções</span>
+        </li>
+        <li class="menu-item menu-sub" data-pagina="bellinha-treinamento" onclick="navegarPara('bellinha-treinamento')">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+          <span class="menu-label">Treinamento</span>
+        </li>
+      </ul>
       <li class="menu-item" data-pagina="crm" onclick="navegarPara('crm')">
         <span class="menu-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg>
@@ -172,6 +188,57 @@
       <div class="section">
         <h2>Mensagens por hora do dia (BRT)</h2>
         <canvas id="grafico-horas" height="80"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Página: Bellinha — Instruções ── -->
+    <div id="pagina-bellinha-instrucoes" style="display:none">
+      <div class="page-header">
+        <h1>Instruções</h1>
+        <span class="page-sub">Personalidade e regras da Bellinha</span>
+      </div>
+      <div class="section" style="max-width:720px">
+        <h2>System prompt</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
+          Use <code style="background:rgba(0,0,0,0.06);padding:1px 6px;border-radius:4px">{nome}</code> para inserir o nome do corretor dinamicamente.
+          O contexto dos empreendimentos e histórico são sempre adicionados automaticamente ao final.
+        </p>
+        <textarea id="instrucoes-texto" rows="18"
+          style="width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:14px;font-size:14px;font-family:inherit;color:var(--text);background:rgba(255,255,255,0.65);resize:vertical;line-height:1.6;outline:none;transition:border-color .2s"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+          <button onclick="salvarInstrucoes()" id="btn-salvar-instrucoes" style="width:auto;padding:11px 28px">Salvar</button>
+          <button class="btn-ghost" onclick="carregarInstrucoes()" style="width:auto;padding:11px 20px">Recarregar</button>
+          <span id="ok-instrucoes" class="form-ok" style="min-height:auto"></span>
+          <span id="erro-instrucoes" class="form-erro" style="min-height:auto"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Página: Bellinha — Treinamento ── -->
+    <div id="pagina-bellinha-treinamento" style="display:none">
+      <div class="page-header">
+        <h1>Treinamento</h1>
+        <span class="page-sub">Documentos da base de conhecimento</span>
+      </div>
+
+      <div class="section" style="max-width:720px">
+        <h2>Adicionar documento</h2>
+        <input type="text" id="doc-titulo" placeholder="Título do documento (ex: Arya - Tabela de Preços)" style="margin-bottom:10px">
+        <textarea id="doc-conteudo" rows="8"
+          style="width:100%;padding:14px 16px;border:1.5px solid var(--border);border-radius:14px;font-size:14px;font-family:inherit;color:var(--text);background:rgba(255,255,255,0.65);resize:vertical;line-height:1.6;outline:none;margin-bottom:12px;transition:border-color .2s"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          placeholder="Cole o conteúdo do documento aqui..."></textarea>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button onclick="adicionarDoc()" id="btn-add-doc" style="width:auto;padding:11px 28px">Indexar documento</button>
+          <span id="ok-doc" class="form-ok" style="min-height:auto"></span>
+          <span id="erro-doc" class="form-erro" style="min-height:auto"></span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Documentos indexados</h2>
+        <div id="docs-lista"></div>
       </div>
     </div>
 
