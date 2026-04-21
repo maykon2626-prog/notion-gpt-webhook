@@ -286,11 +286,12 @@ async function removerUsuario(numero, btn) {
 // ── CRM Kanban ────────────────────────────────────
 
 const CRM_COLS = [
-  { id: 'novo',      label: 'Novo Lead',        cor: '#7A8C5F' },
-  { id: 'contato',   label: 'Em Contato',        cor: '#4A8FA8' },
-  { id: 'proposta',  label: 'Proposta Enviada',  cor: '#9B7FC2' },
-  { id: 'negociacao',label: 'Negociação',        cor: '#D4883A' },
-  { id: 'fechado',   label: 'Fechado',           cor: '#3AAD5E' },
+  { id: 'novo',          label: 'Novo Lead',            cor: '#7A8C5F' },
+  { id: 'tentativa',     label: 'Tentativa de Contato', cor: '#4A8FA8' },
+  { id: 'atendimento',   label: 'Atendimento',          cor: '#9B7FC2' },
+  { id: 'visita_marcada',label: 'Visita Marcada',       cor: '#D4883A' },
+  { id: 'visita_feita',  label: 'Visita Realizada',     cor: '#C2873A' },
+  { id: 'fechamento',    label: 'Fechamento',           cor: '#3AAD5E' },
 ]
 
 let crmCards = JSON.parse(localStorage.getItem('crm_cards') || '[]')
