@@ -517,8 +517,8 @@ tr:last-child td { border-bottom: none; }
   display: flex;
   gap: 14px;
   height: calc(100vh - 68px - 60px);
-  margin: 0 -24px -40px; /* cancela padding do #conteudo nas laterais e embaixo */
-  padding: 0 24px 24px;
+  margin-right: -24px;
+  margin-bottom: -40px;
 }
 
 .treino-sidebar {
