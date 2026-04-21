@@ -361,11 +361,120 @@ body.sidebar-collapsed .menu-icon svg { width: 20px; height: 20px; }
 
 #conteudo {
   margin-left: var(--sidebar-w);
-  padding: 28px 24px 40px;
+  padding: 0 0 0 24px; /* topbar e páginas controlam o espaçamento próprio */
   min-height: 100vh;
   transition: margin-left .25s cubic-bezier(.4,0,.2,1);
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Topbar desktop ─────────────────────────────── */
+
+.topbar-desktop {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: var(--topbar-h);
+  padding: 0 20px;
+  background: rgba(247,244,240,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(232,224,214,0.5);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 12px;
+  transition: background .15s;
+  position: relative;
+  user-select: none;
+}
+.user-profile:hover { background: rgba(122,140,95,0.1); }
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: .5px;
+}
+
+.user-profile-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.user-profile-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform .2s;
+}
+.user-profile.open .user-profile-arrow { transform: rotate(180deg); }
+
+.user-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 14px;
+  border: 1px solid rgba(232,224,214,0.6);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  overflow: hidden;
+  z-index: 100;
+}
+.user-dropdown.open { display: block; }
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background .15s;
+}
+.user-dropdown-item:hover { background: rgba(122,140,95,0.08); }
+.user-dropdown-item.danger { color: #d95a5a; }
+.user-dropdown-item.danger:hover { background: rgba(217,90,90,0.06); }
+.user-dropdown-divider { height: 1px; background: rgba(232,224,214,0.5); margin: 4px 0; }
+
+/* Páginas com padding padrão */
+#pagina-analytics,
+#pagina-usuarios,
+#pagina-configuracoes,
+#pagina-bellinha-instrucoes {
+  padding: 28px 24px 40px 0;
+  flex: 1;
+}
+
+/* Páginas full-width sem padding direito */
+#pagina-crm,
+#pagina-bellinha-treinamento {
+  padding: 20px 0 0 0;
+  flex: 1;
 }
 
 .page-header { margin-bottom: 24px; }
@@ -488,10 +597,21 @@ tr:last-child td { border-bottom: none; }
   #sidebar.open { transform: translateX(0); box-shadow: 8px 0 40px rgba(6,44,76,0.35); }
   #sidebar-overlay.open { display: block; }
   .topbar-mobile { display: flex; }
+  .topbar-desktop { display: none; }
   .bottom-nav { display: flex; }
   #conteudo {
     margin-left: 0;
-    padding: 16px 16px calc(var(--bottom-nav-h) + 16px);
+    padding: 0;
+  }
+  #pagina-analytics,
+  #pagina-usuarios,
+  #pagina-configuracoes,
+  #pagina-bellinha-instrucoes {
+    padding: 16px 16px calc(var(--bottom-nav-h) + 16px) 16px;
+  }
+  #pagina-crm,
+  #pagina-bellinha-treinamento {
+    padding: 12px 0 calc(var(--bottom-nav-h) + 8px) 0;
   }
   body.sidebar-collapsed #conteudo { margin-left: 0; }
   .grid-4 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -513,17 +633,12 @@ tr:last-child td { border-bottom: none; }
 
 /* ── Treinamento Bellinha ────────────────────────── */
 
-/* Páginas que ocupam toda a largura disponível */
-#pagina-bellinha-treinamento,
-#pagina-crm {
-  width: calc(100% + 24px);
-  margin-bottom: -40px;
-}
 
 .treino-layout {
   display: flex;
   gap: 14px;
-  height: calc(100vh - 68px - 60px);
+  height: calc(100vh - var(--topbar-h) - 80px); /* 80px = page-header + padding-top da página */
+  padding-right: 20px;
 }
 
 .treino-sidebar {
@@ -760,7 +875,7 @@ body.sidebar-collapsed .submenu-arrow { display: none; }
 #pagina-crm {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 68px);
+  height: calc(100vh - var(--topbar-h));
 }
 
 #pagina-crm .page-header { flex-shrink: 0; }

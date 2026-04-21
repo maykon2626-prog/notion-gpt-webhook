@@ -112,6 +112,7 @@ async function fazerLogin() {
 
   tokenAtual = data.token
   sessionStorage.setItem('dash_token', tokenAtual)
+  if (data.nome) sessionStorage.setItem('dash_nome', data.nome)
   await abrirApp()
 }
 
@@ -159,18 +160,43 @@ async function redefinirSenha() {
   $('passo-login').querySelector('p').textContent = 'Senha redefinida! Faça login com a nova senha.'
 }
 
+function preencherTopbar() {
+  const nome = sessionStorage.getItem('dash_nome') || ''
+  const iniciais = nome.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase() || '?'
+  const el = $('topbar-nome'); if (el) el.textContent = nome || 'Usuário'
+  const av = $('user-avatar'); if (av) av.textContent = iniciais
+}
+
+function toggleUserMenu() {
+  const profile = $('user-profile')
+  const dropdown = $('user-dropdown')
+  if (!profile || !dropdown) return
+  const open = dropdown.classList.toggle('open')
+  profile.classList.toggle('open', open)
+}
+
+document.addEventListener('click', (e) => {
+  const profile = $('user-profile')
+  if (profile && !profile.contains(e.target)) {
+    $('user-dropdown')?.classList.remove('open')
+    profile.classList.remove('open')
+  }
+})
+
 async function abrirApp() {
   const r = await api('/analytics')
   if (r.status === 401) { sessionStorage.removeItem('dash_token'); tokenAtual = ''; return }
   const data = await r.json()
   $('login').style.display = 'none'
   $('app').style.display = 'flex'
+  preencherTopbar()
   renderizar(data)
 }
 
 async function logout() {
   await api('/auth/logout', { method: 'POST' }).catch(() => {})
   sessionStorage.removeItem('dash_token')
+  sessionStorage.removeItem('dash_nome')
   tokenAtual = ''
   $('app').style.display = 'none'
   document.documentElement.classList.remove('logado')
