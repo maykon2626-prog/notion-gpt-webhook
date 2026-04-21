@@ -8,9 +8,7 @@ const normalizar = str => str?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').
 
 router.get('/', async (req, res) => {
     const token = req.headers['x-token']
-    const senha = req.headers['x-senha'] || req.query.senha
-    const autenticado = validarSessao(token) || (senha && senha === process.env.DASHBOARD_PASSWORD)
-    if (!autenticado) return res.status(401).json({ erro: 'Não autorizado' })
+    if (!await validarSessao(token)) return res.status(401).json({ erro: 'Não autorizado' })
 
     try {
         const { de, ate } = req.query

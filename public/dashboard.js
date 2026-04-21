@@ -4,6 +4,10 @@ let graficoHoras = null
 // ── Helpers ──────────────────────────────────────
 
 function $(id) { return document.getElementById(id) }
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
 function mostrarErro(id, msg) { $(id).textContent = msg }
 function limparMensagens(erroId, okId) { $(erroId).textContent = ''; if (okId) $(okId).textContent = '' }
 
@@ -153,7 +157,8 @@ async function abrirApp() {
   renderizar(data)
 }
 
-function logout() {
+async function logout() {
+  await api('/auth/logout', { method: 'POST' }).catch(() => {})
   sessionStorage.removeItem('dash_token')
   tokenAtual = ''
   $('app').style.display = 'none'
@@ -192,17 +197,17 @@ function renderizar(d) {
 
   $('tb-corretores').innerHTML = d.por_corretor.slice(0, 10).map((c, i) => `
     <tr>
-      <td>${i + 1}</td><td>${c.nome}</td>
-      <td><a href="https://wa.me/${c.telefone}" target="_blank" style="color:#7A8C5F;text-decoration:none;font-size:13px">📱 ${c.telefone}</a></td>
-      <td><span class="tag">${c.tipo}</span></td><td>${c.mensagens}</td>
+      <td>${i + 1}</td><td>${esc(c.nome)}</td>
+      <td><a href="https://wa.me/${esc(c.telefone)}" target="_blank" style="color:#7A8C5F;text-decoration:none;font-size:13px">📱 ${esc(c.telefone)}</a></td>
+      <td><span class="tag">${esc(c.tipo)}</span></td><td>${esc(c.mensagens)}</td>
     </tr>`).join('')
 
   const maxImob = Math.max(...d.por_imobiliaria.map(i => i.count), 1)
   $('imob-list').innerHTML = d.por_imobiliaria.map(i => `
     <div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:13px">
-        <span>${i.label}</span>
-        <span style="color:#8C8880">${i.corretores} corretor${i.corretores !== 1 ? 'es' : ''} · ${i.count} msgs</span>
+        <span>${esc(i.label)}</span>
+        <span style="color:#8C8880">${esc(i.corretores)} corretor${i.corretores !== 1 ? 'es' : ''} · ${esc(i.count)} msgs</span>
       </div>
       <div class="bar-wrap"><div class="bar" style="width:${Math.round(i.count / maxImob * 100)}%"></div></div>
     </div>`).join('')
@@ -210,12 +215,12 @@ function renderizar(d) {
   const maxProd = Math.max(...Object.values(d.por_produto), 1)
   $('prod-list').innerHTML = Object.entries(d.por_produto).sort((a, b) => b[1] - a[1]).map(([k, v]) => `
     <div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:13px"><span>${k}</span><span>${v}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span>${esc(k)}</span><span>${esc(v)}</span></div>
       <div class="bar-wrap"><div class="bar" style="width:${Math.round(v / maxProd * 100)}%"></div></div>
     </div>`).join('')
 
   $('lacunas-list').innerHTML = d.lacunas_pendentes.length
-    ? d.lacunas_pendentes.map(l => `<div class="lacuna">❓ ${l.pergunta}</div>`).join('')
+    ? d.lacunas_pendentes.map(l => `<div class="lacuna">❓ ${esc(l.pergunta)}</div>`).join('')
     : '<p style="color:#8C8880;font-size:13px">Nenhuma lacuna pendente 🎉</p>'
 
   if (d.por_hora) {
@@ -247,10 +252,10 @@ async function carregarUsuarios() {
   const usuarios = await r.json()
   $('tb-usuarios').innerHTML = usuarios.map(u => `
     <tr>
-      <td>${u.nome || '<span style="color:#8C8880">—</span>'}</td>
-      <td>📱 ${u.numero}</td>
+      <td>${u.nome ? esc(u.nome) : '<span style="color:#8C8880">—</span>'}</td>
+      <td>📱 ${esc(u.numero)}</td>
       <td style="color:#8C8880;font-size:13px">${new Date(u.criado_em).toLocaleDateString('pt-BR')}</td>
-      <td><button class="btn-danger" onclick="removerUsuario('${u.numero}', this)">Remover</button></td>
+      <td><button class="btn-danger" onclick="removerUsuario('${esc(u.numero)}', this)">Remover</button></td>
     </tr>`).join('')
 }
 

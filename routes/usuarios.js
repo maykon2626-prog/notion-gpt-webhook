@@ -5,8 +5,8 @@ const { supabase } = require('../lib/supabase')
 const { validarSessao } = require('./auth')
 const { enviarWhatsApp } = require('../lib/whatsapp')
 
-function autenticar(req, res, next) {
-    if (!validarSessao(req.headers['x-token'])) {
+async function autenticar(req, res, next) {
+    if (!await validarSessao(req.headers['x-token'])) {
         return res.status(401).json({ erro: 'Não autorizado' })
     }
     next()
