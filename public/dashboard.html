@@ -118,6 +118,12 @@
           <span class="menu-label">Corretores</span>
         </li>
       </ul>
+      <li class="menu-item" data-pagina="academy" onclick="navegarPara('academy')">
+        <span class="menu-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        </span>
+        <span class="menu-label">Bella Casa Academy</span>
+      </li>
       <li class="menu-item" data-pagina="configuracoes" onclick="navegarPara('configuracoes')">
         <span class="menu-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -412,6 +418,9 @@
           <input type="text" id="lead-nome" class="lead-name-input" placeholder="Nome do lead" oninput="atualizarAvatarLg()">
         </div>
 
+        <!-- Lifecycle stage bar -->
+        <div class="lead-lifecycle" id="lead-lifecycle"></div>
+
         <!-- Barra de info rápida -->
         <div class="lead-info-bar">
           <div class="lead-info-item">
@@ -551,6 +560,69 @@
       </div>
     </div>
 
+    <!-- Modal edição de empreendimento -->
+    <div class="emp-edit-bg" id="emp-edit-bg" onclick="fecharEmpEdit(event)">
+      <div class="emp-edit-panel">
+        <div class="lead-topbar" style="border-bottom:1px solid var(--divider)">
+          <span id="emp-edit-title" style="font-size:15px;font-weight:600;color:var(--text);flex:1;padding-left:8px"></span>
+          <button class="lead-close-btn" onclick="fecharEmpEdit()">×</button>
+        </div>
+
+        <div style="padding:20px 24px;border-bottom:1px solid var(--divider)">
+          <form onsubmit="salvarEmpEdit(event)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Nome *</label>
+                <input type="text" id="emp-edit-nome" placeholder="Nome do empreendimento" required style="margin-bottom:0">
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Tipo</label>
+                <input type="text" id="emp-edit-tipo" placeholder="Ex: Residencial" style="margin-bottom:0">
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-end">
+              <div style="flex:1">
+                <label style="display:block;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Status</label>
+                <select id="emp-edit-status" style="margin-bottom:0">
+                  <option value="">Selecionar...</option>
+                  <option value="lancamento">Lançamento</option>
+                  <option value="em_obras">Em obras</option>
+                  <option value="pronto">Pronto para morar</option>
+                </select>
+              </div>
+              <button type="submit" style="width:auto;padding:10px 24px;flex-shrink:0">Salvar</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Mini treino editor -->
+        <div style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+          <div style="padding:14px 24px 10px;border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Documentos de Treinamento</span>
+            <button onclick="novoDocEmp()" style="width:auto;padding:6px 14px;font-size:12px">+ Novo</button>
+          </div>
+          <div class="emp-treino-layout">
+            <div class="emp-treino-sidebar">
+              <div id="emp-treino-arvore"></div>
+            </div>
+            <div class="emp-treino-editor" id="emp-treino-editor">
+              <div id="emp-treino-editor-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;color:var(--text-muted);opacity:.5">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <p style="font-size:12px">Selecione um documento</p>
+              </div>
+              <div id="emp-treino-editor-content" style="display:none;flex-direction:column;flex:1;padding:16px;gap:10px">
+                <input type="text" id="emp-treino-doc-nome" placeholder="Nome do documento" style="font-weight:500;margin-bottom:0">
+                <textarea id="emp-treino-doc-conteudo" placeholder="Conteúdo do documento..." style="flex:1;resize:none;line-height:1.7;font-size:13px;padding:12px;border:1.5px solid var(--border);border-radius:var(--radius-md);font-family:inherit;color:var(--text);background:rgba(255,255,255,0.65);outline:none"></textarea>
+                <div style="display:flex;justify-content:flex-end;gap:8px">
+                  <button id="btn-salvar-doc-emp" onclick="salvarDocEmp()" style="width:auto;padding:9px 22px;font-size:13px">Salvar e reindexar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Página: Empreendimentos ── -->
     <div id="pagina-empreendimentos" style="display:none">
       <div class="page-header">
@@ -660,6 +732,19 @@
           </table>
         </div>
         <div id="corretores-vazio" style="display:none;padding:32px;text-align:center;color:var(--text-muted);font-size:14px">Nenhum corretor encontrado</div>
+      </div>
+    </div>
+
+    <!-- ── Página: Bella Casa Academy ── -->
+    <div id="pagina-academy" style="display:none">
+      <div class="page-header">
+        <h1>Bella Casa Academy</h1>
+        <span class="page-sub">Treinamento em vídeo para corretores</span>
+      </div>
+      <div class="section" style="padding:48px;text-align:center">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-muted);opacity:.4;margin:0 auto 16px"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <p style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:8px">Em breve</p>
+        <p style="font-size:13px;color:var(--text-muted);max-width:360px;margin:0 auto;line-height:1.6">A plataforma de vídeos de treinamento para corretores está sendo preparada. Em breve você poderá acessar os conteúdos aqui.</p>
       </div>
     </div>
 

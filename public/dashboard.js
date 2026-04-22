@@ -32,6 +32,13 @@ function toggleSubmenu(id) {
   const sub = document.getElementById('submenu-' + id)
   const parent = sub?.previousElementSibling
   if (!sub) return
+  // Fecha outros submenus abertos
+  document.querySelectorAll('.submenu.open').forEach(el => {
+    if (el !== sub) {
+      el.classList.remove('open')
+      el.previousElementSibling?.classList.remove('open')
+    }
+  })
   const open = sub.classList.toggle('open')
   if (parent) parent.classList.toggle('open', open)
 }
@@ -677,8 +684,9 @@ function renderizarEmpreendimentos() {
   tbody.innerHTML = empreendimentos.map(e => `<tr>
     <td style="font-weight:500">${esc(e.nome)}</td>
     <td style="color:var(--text-muted)">${esc(e.tipo || '—')}</td>
-    <td>${e.status ? `<span class="tag">${EMP_STATUS_LABEL[e.status] || e.status}</span>` : '—'}</td>
-    <td style="text-align:right">
+    <td>${e.status ? `<span class="tag tag-${e.status}">${EMP_STATUS_LABEL[e.status] || e.status}</span>` : '—'}</td>
+    <td style="text-align:right;display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="abrirEmpEdit('${e.id}')" style="width:auto;padding:5px 14px;font-size:12px">Editar</button>
       <button onclick="deletarEmpreendimento('${e.id}')" style="width:auto;padding:5px 10px;font-size:12px;background:transparent;color:#d95a5a;border:1.5px solid rgba(217,90,90,0.28);box-shadow:none">Remover</button>
     </td>
   </tr>`).join('')
@@ -693,12 +701,13 @@ function carregarEmpreendimentosSelect() {
 // ── CRM Kanban ────────────────────────────────────
 
 const CRM_COLS = [
-  { id: 'novo',          label: 'Novo Lead',            cor: '#7A8C5F' },
-  { id: 'tentativa',     label: 'Tentativa de Contato', cor: '#4A8FA8' },
-  { id: 'atendimento',   label: 'Atendimento',          cor: '#9B7FC2' },
-  { id: 'visita_marcada',label: 'Visita Marcada',       cor: '#D4883A' },
-  { id: 'visita_feita',  label: 'Visita Realizada',     cor: '#C2873A' },
-  { id: 'fechamento',    label: 'Fechamento',           cor: '#3AAD5E' },
+  { id: 'novo',              label: 'Novo Lead',            cor: '#7A8C5F' },
+  { id: 'tentativa',         label: 'Tentativa de Contato', cor: '#4A8FA8' },
+  { id: 'atendimento',       label: 'Atendimento',          cor: '#9B7FC2' },
+  { id: 'visita_marcada',    label: 'Visita Marcada',       cor: '#D4883A' },
+  { id: 'visita_feita',      label: 'Visita Realizada',     cor: '#C2873A' },
+  { id: 'terreno_reservado', label: 'Terreno Reservado',    cor: '#8B6914' },
+  { id: 'fechamento',        label: 'Fechamento',           cor: '#3AAD5E' },
 ]
 
 let crmCards = []
@@ -736,7 +745,7 @@ function renderizarKanban() {
         </div>
         <button class="kanban-add-btn" onclick="abrirModalCrm('${col.id}')">
           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
-          Adicionar outro card
+          Adicionar cliente
         </button>
       </div>`
   }).join('')
@@ -1019,6 +1028,7 @@ function abrirLeadModal(id) {
   atualizarAvatarLg()
   atualizarInfoBar()
   atualizarBadgeEtapa()
+  renderizarLifecycle()
   atualizarVisibilidadeMotivo()
   atualizarBotoesContato()
 
@@ -1026,7 +1036,7 @@ function abrirLeadModal(id) {
 }
 
 function fecharLeadModal(e) {
-  if (e && e.target !== $('lead-modal-bg')) return
+  if (e && e.target.closest?.('.lead-panel')) return
   $('lead-modal-bg').classList.remove('open')
   leadEditId = null
 }
@@ -1046,6 +1056,28 @@ function atualizarBadgeEtapa() {
     badge.style.background = ''
     badge.style.color = ''
   }
+  renderizarLifecycle()
+}
+
+function renderizarLifecycle() {
+  const lc = $('lead-lifecycle')
+  if (!lc) return
+  const colId = $('lead-coluna').value
+  const currentIdx = CRM_COLS.findIndex(c => c.id === colId)
+  lc.innerHTML = CRM_COLS.map((col, i) => {
+    const done = i < currentIdx
+    const active = i === currentIdx
+    const cls = done ? 'lc-step done' : active ? 'lc-step active' : 'lc-step'
+    return `<div class="${cls}" style="${active ? `--lc-cor:${col.cor}` : ''}" onclick="setLeadEtapa('${col.id}')">
+      ${done ? `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" width="10" height="10"><polyline points="2 8 6 12 14 4"/></svg>` : ''}
+      <span>${col.label}</span>
+    </div>`
+  }).join('<span class="lc-arrow">›</span>')
+}
+
+function setLeadEtapa(colId) {
+  $('lead-coluna').value = colId
+  atualizarBadgeEtapa()
 }
 
 function atualizarVisibilidadeMotivo() {
@@ -1152,3 +1184,143 @@ async function trocarSenha() {
     document.body.style.userSelect = ''
   })
 })()
+
+// ── Empreendimento Edit Panel ─────────────────────
+
+let empEditId = null
+let empDocsAtivos = {}
+let empDocAtivo = null
+
+async function abrirEmpEdit(id) {
+  const emp = empreendimentos.find(e => e.id === id)
+  if (!emp) return
+  empEditId = id
+  empDocAtivo = null
+
+  $('emp-edit-nome').value = emp.nome
+  $('emp-edit-tipo').value = emp.tipo || ''
+  $('emp-edit-status').value = emp.status || ''
+  $('emp-edit-title').textContent = emp.nome
+
+  $('emp-edit-bg').classList.add('open')
+  await carregarDocsEmp(emp.nome)
+}
+
+function fecharEmpEdit(e) {
+  if (e && e.target.closest?.('.emp-edit-panel')) return
+  $('emp-edit-bg').classList.remove('open')
+  empEditId = null
+}
+
+async function salvarEmpEdit(e) {
+  e.preventDefault()
+  const nome = $('emp-edit-nome').value.trim()
+  if (!nome) return
+  const btn = e.submitter
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...' }
+  try {
+    const r = await api(`/crm/empreendimentos/${empEditId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nome, tipo: $('emp-edit-tipo').value.trim(), status: $('emp-edit-status').value })
+    })
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao salvar'); return }
+    $('emp-edit-title').textContent = nome
+    await carregarEmpreendimentos()
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar' }
+  }
+}
+
+async function carregarDocsEmp(pasta) {
+  try {
+    const r = await api('/bellinha/docs')
+    if (!r.ok) return
+    const todos = await r.json()
+    empDocsAtivos = todos[pasta] ? { [pasta]: todos[pasta] } : {}
+    renderizarArvoreEmp(pasta)
+  } catch (e) { console.error('Erro ao carregar docs:', e) }
+}
+
+function renderizarArvoreEmp(pasta) {
+  const arvore = $('emp-treino-arvore')
+  if (!arvore) return
+  const docs = empDocsAtivos[pasta] || []
+  if (!docs.length) {
+    arvore.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:10px">Nenhum documento ainda. Clique em + Novo para começar.</p>'
+    return
+  }
+  arvore.innerHTML = docs.map(d => `
+    <div class="treino-doc-item${empDocAtivo === d.arquivo ? ' active' : ''}" onclick="abrirDocEmp('${esc(d.arquivo)}')" data-arquivo="${esc(d.arquivo)}">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.nome)}</span>
+      <button class="treino-doc-delete" onclick="event.stopPropagation();deletarDocEmp('${esc(d.arquivo)}')" title="Excluir">×</button>
+    </div>`).join('')
+}
+
+async function abrirDocEmp(arquivo) {
+  empDocAtivo = arquivo
+  const emp = empreendimentos.find(e => e.id === empEditId)
+  if (emp) renderizarArvoreEmp(emp.nome)
+
+  $('emp-treino-doc-nome').value = arquivo.split('/').pop().replace(/\.txt$/, '')
+  $('emp-treino-doc-conteudo').value = 'Carregando...'
+  $('emp-treino-editor-content').style.display = 'flex'
+  $('emp-treino-editor-empty').style.display = 'none'
+
+  const r = await api('/bellinha/docs/conteudo?arquivo=' + encodeURIComponent(arquivo))
+  if (!r.ok) { $('emp-treino-doc-conteudo').value = ''; return }
+  const data = await r.json()
+  $('emp-treino-doc-conteudo').value = data.conteudo
+}
+
+async function salvarDocEmp() {
+  if (!empDocAtivo) return
+  const conteudo = $('emp-treino-doc-conteudo').value.trim()
+  const novoNome = $('emp-treino-doc-nome').value.trim()
+  if (!conteudo) return
+  const btn = $('btn-salvar-doc-emp')
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...' }
+
+  const partes = empDocAtivo.split('/')
+  const nomAtual = partes[partes.length - 1].replace(/\.txt$/, '')
+  let arquivoFinal = empDocAtivo
+  if (novoNome && novoNome !== nomAtual) {
+    partes[partes.length - 1] = novoNome + '.txt'
+    arquivoFinal = partes.join('/')
+    await api('/bellinha/docs/renomear', { method: 'POST', body: JSON.stringify({ de: empDocAtivo, para: arquivoFinal, tipo: 'doc' }) })
+    empDocAtivo = arquivoFinal
+  }
+
+  const r = await api('/bellinha/docs/conteudo', { method: 'PUT', body: JSON.stringify({ arquivo: arquivoFinal, conteudo }) })
+  if (btn) { btn.disabled = false; btn.textContent = 'Salvar e reindexar' }
+  if (r.ok) {
+    const emp = empreendimentos.find(e => e.id === empEditId)
+    if (emp) await carregarDocsEmp(emp.nome)
+  }
+}
+
+async function novoDocEmp() {
+  const emp = empreendimentos.find(e => e.id === empEditId)
+  if (!emp) return
+  const nome = prompt('Nome do documento:')
+  if (!nome) return
+  const arquivo = emp.nome + '/' + nome.trim() + '.txt'
+  empDocAtivo = arquivo
+  $('emp-treino-doc-nome').value = nome.trim()
+  $('emp-treino-doc-conteudo').value = ''
+  $('emp-treino-editor-content').style.display = 'flex'
+  $('emp-treino-editor-empty').style.display = 'none'
+  $('emp-treino-doc-conteudo').focus()
+}
+
+async function deletarDocEmp(arquivo) {
+  if (!confirm(`Excluir "${arquivo}"?`)) return
+  await api('/bellinha/docs/' + encodeURIComponent(arquivo), { method: 'DELETE' })
+  if (empDocAtivo === arquivo) {
+    empDocAtivo = null
+    $('emp-treino-editor-content').style.display = 'none'
+    $('emp-treino-editor-empty').style.display = 'flex'
+  }
+  const emp = empreendimentos.find(e => e.id === empEditId)
+  if (emp) await carregarDocsEmp(emp.nome)
+}

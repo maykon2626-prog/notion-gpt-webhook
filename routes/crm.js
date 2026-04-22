@@ -97,6 +97,19 @@ router.post('/empreendimentos', autenticar, async (req, res) => {
     return res.status(201).json(data)
 })
 
+router.put('/empreendimentos/:id', autenticar, async (req, res) => {
+    const { nome, tipo, status } = req.body
+    if (!nome) return res.status(400).json({ erro: 'Nome obrigatório' })
+    const { data, error } = await supabase
+        .from('empreendimentos')
+        .update({ nome, tipo: tipo || null, status: status || null })
+        .eq('id', req.params.id)
+        .select()
+        .single()
+    if (error) return res.status(500).json({ erro: error.message })
+    return res.json(data)
+})
+
 router.delete('/empreendimentos/:id', autenticar, async (req, res) => {
     const { error } = await supabase.from('empreendimentos').delete().eq('id', req.params.id)
     if (error) return res.status(500).json({ erro: error.message })
