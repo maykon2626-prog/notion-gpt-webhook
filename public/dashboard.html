@@ -97,6 +97,10 @@
           <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
           <span class="menu-label">Clientes</span>
         </li>
+        <li class="menu-item menu-sub" data-pagina="empreendimentos" onclick="navegarPara('empreendimentos')">
+          <span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+          <span class="menu-label">Empreendimentos</span>
+        </li>
       </ul>
       <li class="menu-item menu-parent" onclick="toggleSubmenu('usuarios')">
         <span class="menu-icon">
@@ -354,9 +358,13 @@
               <tr>
                 <th>Nome</th>
                 <th>Telefone</th>
+                <th>Email</th>
+                <th>Corretor</th>
+                <th>Produto</th>
                 <th>Etapa</th>
-                <th>Observação</th>
                 <th>Status</th>
+                <th>Valor</th>
+                <th>Último contato</th>
                 <th></th>
               </tr>
             </thead>
@@ -367,16 +375,229 @@
       </div>
     </div>
 
-    <!-- Modal novo card -->
+    <!-- Modal novo card (criação rápida) -->
     <div class="crm-modal-bg" id="crm-modal-bg" onclick="fecharModalCrm(event)">
       <div class="crm-modal">
         <h3 id="crm-modal-titulo">Novo lead</h3>
         <input type="text" id="crm-nome" placeholder="Nome" style="margin-bottom:10px">
-        <input type="tel" id="crm-telefone" placeholder="Telefone (opcional)">
-        <input type="text" id="crm-nota" placeholder="Observação (opcional)">
+        <input type="tel" id="crm-telefone" placeholder="Telefone (opcional)" style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">Corretor</label>
+        <select id="crm-corretor" style="margin-bottom:12px">
+          <option value="">Selecionar corretor...</option>
+        </select>
         <div class="crm-modal-footer">
           <button class="btn-ghost" onclick="fecharModalCrm()">Cancelar</button>
           <button onclick="salvarCardCrm()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal detalhe/edição do lead -->
+    <div class="lead-modal-bg" id="lead-modal-bg" onclick="fecharLeadModal(event)">
+      <div class="lead-panel" id="lead-panel">
+
+        <!-- Alça de redimensionamento -->
+        <div class="lead-resize-handle" id="lead-resize-handle"></div>
+
+        <!-- Barra de topo -->
+        <div class="lead-topbar">
+          <button class="lead-close-btn" onclick="fecharLeadModal()" aria-label="Fechar">×</button>
+        </div>
+
+        <!-- Hero: avatar + nome -->
+        <div class="lead-hero">
+          <div class="lead-avatar-lg" id="lead-avatar-lg">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          </div>
+          <input type="text" id="lead-nome" class="lead-name-input" placeholder="Nome do lead" oninput="atualizarAvatarLg()">
+        </div>
+
+        <!-- Barra de info rápida -->
+        <div class="lead-info-bar">
+          <div class="lead-info-item">
+            <span class="lead-info-label">Telefones</span>
+            <div class="lead-info-phone-row">
+              <span id="lead-info-phone" class="lead-info-val">—</span>
+              <a id="lead-whatsapp-btn" href="#" target="_blank" rel="noopener" class="lead-info-icon-btn" title="WhatsApp">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </a>
+              <a id="lead-tel-btn" href="#" class="lead-info-icon-btn" title="Ligar">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+              </a>
+            </div>
+          </div>
+          <div class="lead-info-item">
+            <span class="lead-info-label">E-mail</span>
+            <span id="lead-info-email" class="lead-info-val">—</span>
+          </div>
+          <div class="lead-info-item">
+            <span class="lead-info-label">Último Contato</span>
+            <span id="lead-info-contato" class="lead-info-val">—</span>
+          </div>
+          <div class="lead-info-item">
+            <span class="lead-info-label">Negociação</span>
+            <span id="lead-info-produto" class="lead-info-val">—</span>
+          </div>
+        </div>
+
+        <!-- Corpo (scrollável) -->
+        <div class="lead-panel-body">
+
+          <!-- Grupo de propriedades -->
+          <div class="lead-prop-group">
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Etapa</span>
+              <select id="lead-coluna" onchange="atualizarBadgeEtapa()">
+                <option value="">Selecionar etapa...</option>
+              </select>
+              <span id="lead-etapa-badge" class="lead-etapa-pill"></span>
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Status da venda</span>
+              <select id="lead-status-venda" onchange="atualizarVisibilidadeMotivo()">
+                <option value="">Selecionar...</option>
+                <option value="andamento">Em andamento</option>
+                <option value="convertido">Convertido</option>
+                <option value="perdido">Perdido</option>
+              </select>
+            </div>
+
+            <div class="lead-prop-row" id="lead-motivo-wrap" style="display:none">
+              <span class="lead-prop-label">Motivo da perda</span>
+              <textarea id="lead-motivo-perda" placeholder="Vazio" rows="2"></textarea>
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Corretor</span>
+              <select id="lead-corretor">
+                <option value="">Selecionar corretor...</option>
+              </select>
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Telefone</span>
+              <div class="lead-prop-phone">
+                <input type="tel" id="lead-telefone" placeholder="(45) 99999-9999" oninput="atualizarBotoesContato()">
+              </div>
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">E-mail</span>
+              <input type="email" id="lead-email" placeholder="—" oninput="atualizarInfoBar()">
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Produto</span>
+              <input type="text" id="lead-produto-negociacao" placeholder="—" list="emp-datalist" oninput="atualizarInfoBar()">
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Prod. origem</span>
+              <input type="text" id="lead-produto-origem" placeholder="—" list="emp-datalist">
+            </div>
+            <datalist id="emp-datalist"></datalist>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Campanha</span>
+              <input type="text" id="lead-campanha-origem" placeholder="—">
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Valor</span>
+              <input type="text" id="lead-valor" placeholder="R$ —">
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Data cadastro</span>
+              <input type="date" id="lead-data-cadastro">
+            </div>
+
+            <div class="lead-prop-row">
+              <span class="lead-prop-label">Último contato</span>
+              <input type="date" id="lead-data-ultimo-contato" oninput="atualizarInfoBar()">
+            </div>
+
+          </div>
+
+          <!-- Anotações -->
+          <div class="lead-content-block">
+            <div class="lead-content-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Anotações
+            </div>
+            <textarea id="lead-anotacoes" placeholder="Adicionar anotações..." rows="4"></textarea>
+          </div>
+
+          <!-- Documentos -->
+          <div class="lead-content-block">
+            <div class="lead-content-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Documentos do cliente
+            </div>
+            <textarea id="lead-documentos" placeholder="Links de documentos, notas técnicas..." rows="3"></textarea>
+          </div>
+
+        </div>
+
+        <!-- Rodapé -->
+        <div class="lead-panel-footer">
+          <button class="btn-ghost" onclick="fecharLeadModal()">Cancelar</button>
+          <span id="lead-ok-msg" class="form-ok"></span>
+          <button onclick="salvarLead()">Salvar</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Página: Empreendimentos ── -->
+    <div id="pagina-empreendimentos" style="display:none">
+      <div class="page-header">
+        <h1>Empreendimentos</h1>
+        <span class="page-sub">Cadastro de produtos imobiliários</span>
+      </div>
+
+      <div class="section">
+        <h2 style="font-size:15px;font-weight:600;margin-bottom:16px;color:var(--text)">Novo empreendimento</h2>
+        <form onsubmit="salvarEmpreendimento(event)" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:2;min-width:200px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px">Nome do empreendimento *</label>
+            <input type="text" id="emp-nome" placeholder="Ex: Noah Beach" style="margin-bottom:0" required>
+          </div>
+          <div style="flex:1;min-width:150px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px">Tipo</label>
+            <input type="text" id="emp-tipo" placeholder="Ex: Residencial" style="margin-bottom:0">
+          </div>
+          <div style="flex:1;min-width:150px">
+            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px">Status</label>
+            <select id="emp-status" style="margin-bottom:0">
+              <option value="">Selecionar...</option>
+              <option value="lancamento">Lançamento</option>
+              <option value="em_obras">Em obras</option>
+              <option value="pronto">Pronto para morar</option>
+            </select>
+          </div>
+          <button type="submit" style="width:auto;padding:10px 24px;flex-shrink:0">Cadastrar</button>
+        </form>
+      </div>
+
+      <div class="section" style="padding:0;overflow:hidden;margin-top:0">
+        <div class="table-scroll">
+          <table id="emp-tabela">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th>Status</th>
+                <th style="text-align:right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="emp-tbody"></tbody>
+          </table>
+        </div>
+        <div id="emp-vazio" style="display:none;padding:48px;text-align:center;color:var(--text-muted);font-size:14px">
+          Nenhum empreendimento cadastrado ainda.
         </div>
       </div>
     </div>

@@ -72,8 +72,9 @@ function navegarPara(pagina) {
   document.querySelectorAll('#conteudo > div[id^="pagina-"]').forEach(el => el.style.display = 'none')
   $(`pagina-${pagina}`).style.display = 'block'
 
-  if (pagina === 'crm-pipeline') { $('pagina-crm-pipeline').style.display = 'flex'; renderizarKanban() }
-  if (pagina === 'crm-clientes') renderizarClientes()
+  if (pagina === 'crm-pipeline') { $('pagina-crm-pipeline').style.display = 'flex'; carregarLeads().then(renderizarKanban) }
+  if (pagina === 'crm-clientes') carregarLeads().then(renderizarClientes)
+  if (pagina === 'empreendimentos') carregarEmpreendimentos()
   if (pagina === 'usuarios-administradores') carregarUsuarios()
   if (pagina === 'usuarios-corretores') carregarCorretores()
   if (pagina === 'bellinha-instrucoes') carregarInstrucoes()
@@ -619,6 +620,76 @@ async function confirmarModalTreino() {
   $('treino-doc-conteudo').focus()
 }
 
+// ── Empreendimentos ───────────────────────────────
+
+let empreendimentos = []
+
+const EMP_STATUS_LABEL = { lancamento: 'Lançamento', em_obras: 'Em obras', pronto: 'Pronto' }
+
+async function carregarEmpreendimentos() {
+  try {
+    const r = await api('/crm/empreendimentos')
+    if (!r.ok) return
+    empreendimentos = await r.json()
+    renderizarEmpreendimentos()
+    carregarEmpreendimentosSelect()
+  } catch (e) { console.error('Erro ao carregar empreendimentos:', e) }
+}
+
+async function salvarEmpreendimento(e) {
+  e.preventDefault()
+  const nome = $('emp-nome').value.trim()
+  if (!nome) return
+  const btn = e.submitter
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...' }
+  try {
+    const r = await api('/crm/empreendimentos', {
+      method: 'POST',
+      body: JSON.stringify({ nome, tipo: $('emp-tipo').value.trim(), status: $('emp-status').value })
+    })
+    if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao salvar'); return }
+    $('emp-nome').value = ''; $('emp-tipo').value = ''; $('emp-status').value = ''
+    await carregarEmpreendimentos()
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Cadastrar' }
+  }
+}
+
+async function deletarEmpreendimento(id) {
+  if (!confirm('Remover este empreendimento?')) return
+  const r = await api(`/crm/empreendimentos/${id}`, { method: 'DELETE' })
+  if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao remover'); return }
+  await carregarEmpreendimentos()
+}
+
+function renderizarEmpreendimentos() {
+  const tbody = $('emp-tbody')
+  const vazio = $('emp-vazio')
+  const tabela = $('emp-tabela')
+  if (!tbody) return
+  if (!empreendimentos.length) {
+    tabela.style.display = 'none'
+    vazio.style.display = 'block'
+    return
+  }
+  tabela.style.display = ''
+  vazio.style.display = 'none'
+  tbody.innerHTML = empreendimentos.map(e => `<tr>
+    <td style="font-weight:500">${esc(e.nome)}</td>
+    <td style="color:var(--text-muted)">${esc(e.tipo || '—')}</td>
+    <td>${e.status ? `<span class="tag">${EMP_STATUS_LABEL[e.status] || e.status}</span>` : '—'}</td>
+    <td style="text-align:right">
+      <button onclick="deletarEmpreendimento('${e.id}')" style="width:auto;padding:5px 10px;font-size:12px;background:transparent;color:#d95a5a;border:1.5px solid rgba(217,90,90,0.28);box-shadow:none">Remover</button>
+    </td>
+  </tr>`).join('')
+}
+
+function carregarEmpreendimentosSelect() {
+  const dl = $('emp-datalist')
+  if (!dl) return
+  dl.innerHTML = empreendimentos.map(e => `<option value="${esc(e.nome)}">`).join('')
+}
+
 // ── CRM Kanban ────────────────────────────────────
 
 const CRM_COLS = [
@@ -630,13 +701,17 @@ const CRM_COLS = [
   { id: 'fechamento',    label: 'Fechamento',           cor: '#3AAD5E' },
 ]
 
-let crmCards = JSON.parse(localStorage.getItem('crm_cards') || '[]')
+let crmCards = []
 let crmColAtiva = 'novo'
 let crmDragId = null
 let crmEditId = null
 
-function salvarCrm() {
-  localStorage.setItem('crm_cards', JSON.stringify(crmCards))
+async function carregarLeads() {
+  try {
+    const r = await api('/crm/leads')
+    if (!r.ok) return
+    crmCards = await r.json()
+  } catch (e) { console.error('Erro ao carregar leads:', e) }
 }
 
 function renderizarKanban() {
@@ -659,20 +734,48 @@ function renderizarKanban() {
           ondrop="crmDrop(event,'${col.id}')">
           ${cards.map(c => crmCardHtml(c)).join('')}
         </div>
-        <button class="kanban-add-btn" onclick="abrirModalCrm('${col.id}')">+ Adicionar</button>
+        <button class="kanban-add-btn" onclick="abrirModalCrm('${col.id}')">
+          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
+          Adicionar outro card
+        </button>
       </div>`
   }).join('')
 }
 
 function crmCardHtml(c) {
+  const corretorInitials = c.corretor ? c.corretor.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() : ''
+
+  const tagColor = c.status_venda === 'convertido' ? '#22C55E'
+                 : c.status_venda === 'perdido'    ? '#d95a5a'
+                 : '#4A8FA8'
+  const tagLabel = c.produto_negociacao || (c.status_venda === 'convertido' ? 'Convertido' : c.status_venda === 'perdido' ? 'Perdido' : null)
+
+  let dateStr = ''
+  if (c.data_ultimo_contato) {
+    const d = new Date(c.data_ultimo_contato + 'T12:00:00')
+    dateStr = d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })
+  }
+
+  const svgCal = `<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" width="11" height="11"><rect x="1" y="2.5" width="12" height="10" rx="2"/><path d="M4.5 1v3M9.5 1v3M1 6h12"/></svg>`
+  const svgPhone = `<svg viewBox="0 0 14 14" fill="currentColor" width="11" height="11"><path d="M3.1 5.3c.7 1.3 1.8 2.5 3.1 3.1l1-1c.2-.1.4-.1.5 0 .5.2 1 .3 1.6.3.3 0 .6.2.6.5v1.6c0 .3-.2.5-.5.5C4 10.3 1 7.3 1 3.5c0-.3.2-.5.5-.5H3c.3 0 .5.2.5.5 0 .6.1 1.1.3 1.6.1.2 0 .4-.1.5L3.1 5.3z"/></svg>`
+  const svgVal = `<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" width="11" height="11"><circle cx="7" cy="7" r="5.5"/><path d="M7 4v6M5 5.5h2.5a1.5 1.5 0 010 3H5"/></svg>`
+
   return `
     <div class="kanban-card" id="card-${c.id}" draggable="true"
+      onclick="abrirLeadModal('${c.id}')"
       ondragstart="crmDragStart(event,'${c.id}')"
       ondragend="crmDragEnd(event)">
-      <button class="kanban-card-delete" onclick="deletarCardCrm('${c.id}')" title="Remover">×</button>
-      <div class="kanban-card-name">${esc(c.nome)}</div>
-      ${c.telefone ? `<div class="kanban-card-phone">📱 ${esc(c.telefone)}</div>` : ''}
-      ${c.nota ? `<div class="kanban-card-note">${esc(c.nota)}</div>` : ''}
+      <button class="kanban-card-delete" onclick="event.stopPropagation();deletarCardCrm('${c.id}')" title="Remover">×</button>
+      ${tagLabel ? `<div class="kcard-tag" style="background:${tagColor}18;color:${tagColor}">${esc(tagLabel)}</div>` : ''}
+      <div class="kcard-title">${esc(c.nome)}</div>
+      <div class="kcard-footer">
+        <div class="kcard-meta">
+          ${dateStr ? `<span class="kcard-meta-item">${svgCal} ${dateStr}</span>` : ''}
+          ${c.telefone ? `<span class="kcard-meta-item">${svgPhone}</span>` : ''}
+          ${c.valor_negociacao ? `<span class="kcard-meta-item">${svgVal} ${esc(c.valor_negociacao)}</span>` : ''}
+        </div>
+        ${corretorInitials ? `<div class="kcard-avatar">${corretorInitials}</div>` : ''}
+      </div>
     </div>`
 }
 
@@ -682,8 +785,9 @@ function abrirModalCrm(colId) {
   $('crm-modal-titulo').textContent = 'Novo lead'
   $('crm-nome').value = ''
   $('crm-telefone').value = ''
-  $('crm-nota').value = ''
+  $('crm-corretor').value = ''
   $('crm-modal-bg').classList.add('open')
+  carregarCorretoresSelect()
   setTimeout(() => $('crm-nome').focus(), 50)
 }
 
@@ -692,29 +796,44 @@ function fecharModalCrm(e) {
   $('crm-modal-bg').classList.remove('open')
 }
 
-function salvarCardCrm() {
+async function salvarCardCrm() {
   const nome = $('crm-nome').value.trim()
   if (!nome) { $('crm-nome').focus(); return }
-  if (crmEditId) {
-    const idx = crmCards.findIndex(c => c.id === crmEditId)
-    if (idx >= 0) { crmCards[idx].nome = nome; crmCards[idx].telefone = $('crm-telefone').value.trim(); crmCards[idx].nota = $('crm-nota').value.trim() }
-  } else {
-    crmCards.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2), nome, telefone: $('crm-telefone').value.trim(), nota: $('crm-nota').value.trim(), coluna: crmColAtiva })
-  }
-  salvarCrm()
+  const corretorVal = ($('crm-corretor').value || '').split(',')
+  const r = await api('/crm/leads', {
+    method: 'POST',
+    body: JSON.stringify({
+      nome,
+      telefone: $('crm-telefone').value.trim(),
+      coluna: crmColAtiva,
+      corretor: corretorVal[0] || '',
+      corretor_numero: corretorVal[1] || '',
+      data_cadastro: new Date().toISOString(),
+    })
+  })
+  if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao criar lead'); return }
   $('crm-modal-bg').classList.remove('open')
+  await carregarLeads()
   renderizarKanban()
 }
 
-function deletarCardCrm(id) {
+async function deletarCardCrm(id) {
+  const r = await api(`/crm/leads/${id}`, { method: 'DELETE' })
+  if (!r.ok) return
   crmCards = crmCards.filter(c => c.id !== id)
-  salvarCrm()
   renderizarKanban()
+  renderizarClientes()
 }
 
-function arquivarCardCrm(id) {
+async function arquivarCardCrm(id) {
   const card = crmCards.find(c => c.id === id)
-  if (card) { card.arquivado = !card.arquivado; salvarCrm(); renderizarKanban(); renderizarClientes() }
+  if (!card) return
+  const arquivado = !card.arquivado
+  const r = await api(`/crm/leads/${id}`, { method: 'PUT', body: JSON.stringify({ arquivado }) })
+  if (!r.ok) return
+  card.arquivado = arquivado
+  renderizarKanban()
+  renderizarClientes()
 }
 
 // ── CRM Clientes ──────────────────────────────────
@@ -734,7 +853,7 @@ function renderizarClientes() {
   let lista = [...crmCards]
   if (clientesFiltro === 'ativo') lista = lista.filter(c => !c.arquivado)
   if (clientesFiltro === 'arquivado') lista = lista.filter(c => c.arquivado)
-  if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca) || (c.telefone || '').includes(busca))
+  if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca) || (c.telefone || '').includes(busca) || (c.email || '').includes(busca))
 
   const tbody = $('clientes-tbody')
   const vazio = $('clientes-vazio')
@@ -753,15 +872,25 @@ function renderizarClientes() {
   tbody.innerHTML = lista.map(c => {
     const col = CRM_COL_LABEL[c.coluna] || { label: c.coluna, cor: '#8C8880' }
     const arquivado = c.arquivado
+    const statusColor = c.status_venda === 'convertido' ? '#22C55E' : c.status_venda === 'perdido' ? '#d95a5a' : '#C97A1A'
+    const statusLabel = c.status_venda === 'convertido' ? 'Convertido' : c.status_venda === 'perdido' ? 'Perdido' : 'Em andamento'
+    const tel = (c.telefone || '').replace(/\D/g, '')
     return `<tr>
-      <td style="font-weight:500">${esc(c.nome)}</td>
-      <td style="color:var(--text-muted)">${esc(c.telefone || '—')}</td>
+      <td style="font-weight:500;cursor:pointer;color:var(--accent)" onclick="abrirLeadModal('${c.id}')" title="Abrir ficha">${esc(c.nome)}</td>
+      <td style="color:var(--text-muted)">
+        ${c.telefone ? `<a href="https://wa.me/55${tel}" target="_blank" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:4px">📱 ${esc(c.telefone)}</a>` : '—'}
+      </td>
+      <td style="color:var(--text-muted);font-size:13px">${esc(c.email || '—')}</td>
+      <td style="color:var(--text-muted);font-size:13px">${esc(c.corretor || '—')}</td>
+      <td style="color:var(--text-muted);font-size:13px">${esc(c.produto_negociacao || '—')}</td>
       <td><span class="tag" style="background:${col.cor}22;color:${col.cor};border-color:${col.cor}33">${esc(col.label)}</span></td>
-      <td style="color:var(--text-muted);font-size:13px;max-width:220px">${esc(c.nota || '—')}</td>
-      <td><span class="tag" style="${arquivado ? 'background:rgba(217,90,90,0.1);color:#d95a5a;border-color:rgba(217,90,90,0.2)' : 'background:rgba(122,140,95,0.1);color:var(--accent);border-color:rgba(122,140,95,0.2)'}">${arquivado ? 'Arquivado' : 'Ativo'}</span></td>
+      <td>${c.status_venda ? `<span class="tag" style="background:${statusColor}22;color:${statusColor};border-color:${statusColor}33">${statusLabel}</span>` : '—'}</td>
+      <td style="color:var(--accent);font-weight:500">${c.valor_negociacao ? 'R$ ' + esc(c.valor_negociacao) : '—'}</td>
+      <td style="color:var(--text-muted);font-size:12px">${c.data_ultimo_contato ? c.data_ultimo_contato.split('T')[0] : '—'}</td>
       <td style="white-space:nowrap;text-align:right">
+        <button onclick="abrirLeadModal('${c.id}')" style="width:auto;padding:5px 10px;font-size:12px;background:transparent;color:var(--accent);border:1.5px solid rgba(122,140,95,0.3);box-shadow:none;margin-right:4px" title="Editar">✏</button>
         <button onclick="arquivarCardCrm('${c.id}')" style="width:auto;padding:5px 12px;font-size:12px;background:transparent;color:var(--text-muted);border:1.5px solid var(--border);box-shadow:none" title="${arquivado ? 'Reativar' : 'Arquivar'}">${arquivado ? 'Reativar' : 'Arquivar'}</button>
-        <button onclick="deletarCardCrm('${c.id}');renderizarClientes()" style="width:auto;padding:5px 10px;font-size:12px;background:transparent;color:#d95a5a;border:1.5px solid rgba(217,90,90,0.28);box-shadow:none;margin-left:6px" title="Excluir">Excluir</button>
+        <button onclick="deletarCardCrm('${c.id}');renderizarClientes()" style="width:auto;padding:5px 10px;font-size:12px;background:transparent;color:#d95a5a;border:1.5px solid rgba(217,90,90,0.28);box-shadow:none;margin-left:4px" title="Excluir">Excluir</button>
       </td>
     </tr>`
   }).join('')
@@ -783,13 +912,190 @@ function crmDragOver(e) {
 function crmDragLeave(e) {
   e.currentTarget.classList.remove('drag-over')
 }
-function crmDrop(e, colId) {
+async function crmDrop(e, colId) {
   e.preventDefault()
   e.currentTarget.classList.remove('drag-over')
   if (!crmDragId) return
   const card = crmCards.find(c => c.id === crmDragId)
-  if (card) { card.coluna = colId; salvarCrm(); renderizarKanban() }
+  const id = crmDragId
   crmDragId = null
+  if (!card || card.coluna === colId) return
+  card.coluna = colId
+  renderizarKanban()
+  await api(`/crm/leads/${id}`, { method: 'PUT', body: JSON.stringify({ coluna: colId }) })
+}
+
+// ── Lead Modal (detalhe/edição) ──────────────────
+
+let leadEditId = null
+
+async function carregarCorretoresSelect() {
+  try {
+    const res = await fetch('/usuarios/corretores', { headers: { 'x-token': sessionStorage.getItem('dash_token') } })
+    if (!res.ok) return
+    const corretores = await res.json()
+    const selects = [$('crm-corretor'), $('lead-corretor')].filter(Boolean)
+    selects.forEach(sel => {
+      const val = sel.value
+      sel.innerHTML = '<option value="">Selecionar corretor...</option>' + corretores.map(c => `<option value="${esc(c.nome)},${esc(c.numero)}">${esc(c.nome)}</option>`).join('')
+      sel.value = val
+    })
+  } catch (e) { console.error('Erro ao carregar corretores:', e) }
+}
+
+function popularSelectEtapas() {
+  const sel = $('lead-coluna')
+  if (!sel || sel.options.length > 1) return
+  CRM_COLS.forEach(c => {
+    const opt = document.createElement('option')
+    opt.value = c.id
+    opt.textContent = c.label
+    sel.appendChild(opt)
+  })
+}
+
+function atualizarAvatarLg() {
+  const nome = ($('lead-nome').value || '').trim()
+  const av = $('lead-avatar-lg')
+  if (!av) return
+  const parts = nome.split(/\s+/).filter(Boolean)
+  if (parts.length === 0) {
+    av.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>'
+    av.classList.remove('has-initials')
+  } else {
+    const initials = parts.slice(0, 2).map(w => w[0].toUpperCase()).join('')
+    av.textContent = initials
+    av.classList.add('has-initials')
+  }
+}
+
+function atualizarInfoBar() {
+  const tel = ($('lead-telefone').value || '').trim()
+  const email = ($('lead-email').value || '').trim()
+  const produto = ($('lead-produto-negociacao').value || '').trim()
+  const dataContato = ($('lead-data-ultimo-contato').value || '').trim()
+  const phoneEl = $('lead-info-phone')
+  const emailEl = $('lead-info-email')
+  const produtoEl = $('lead-info-produto')
+  const contatoEl = $('lead-info-contato')
+  if (phoneEl) phoneEl.textContent = tel || '—'
+  if (emailEl) emailEl.textContent = email || '—'
+  if (produtoEl) produtoEl.textContent = produto || '—'
+  if (contatoEl) {
+    if (dataContato) {
+      const d = new Date(dataContato + 'T12:00:00')
+      contatoEl.textContent = d.toLocaleDateString('pt-BR', { weekday: 'long' })
+    } else {
+      contatoEl.textContent = '—'
+    }
+  }
+}
+
+function abrirLeadModal(id) {
+  leadEditId = id
+  const card = crmCards.find(c => c.id === id)
+  if (!card) return
+
+  popularSelectEtapas()
+  carregarCorretoresSelect()
+  carregarEmpreendimentosSelect()
+
+  $('lead-nome').value = card.nome || ''
+  $('lead-telefone').value = card.telefone || ''
+  $('lead-email').value = card.email || ''
+  $('lead-coluna').value = card.coluna || ''
+  $('lead-corretor').value = (card.corretor && card.corretor_numero) ? `${card.corretor},${card.corretor_numero}` : ''
+  $('lead-produto-negociacao').value = card.produto_negociacao || ''
+  $('lead-produto-origem').value = card.produto_origem || ''
+  $('lead-campanha-origem').value = card.campanha_origem || ''
+  $('lead-valor').value = card.valor_negociacao || ''
+  $('lead-status-venda').value = card.status_venda || ''
+  $('lead-motivo-perda').value = card.motivo_perda || ''
+  $('lead-data-cadastro').value = card.data_cadastro ? card.data_cadastro.split('T')[0] : ''
+  $('lead-data-ultimo-contato').value = card.data_ultimo_contato ? card.data_ultimo_contato.split('T')[0] : ''
+  $('lead-documentos').value = card.documentos || ''
+  $('lead-anotacoes').value = card.anotacoes || ''
+
+  atualizarAvatarLg()
+  atualizarInfoBar()
+  atualizarBadgeEtapa()
+  atualizarVisibilidadeMotivo()
+  atualizarBotoesContato()
+
+  $('lead-modal-bg').classList.add('open')
+}
+
+function fecharLeadModal(e) {
+  if (e && e.target !== $('lead-modal-bg')) return
+  $('lead-modal-bg').classList.remove('open')
+  leadEditId = null
+}
+
+function atualizarBadgeEtapa() {
+  const colId = $('lead-coluna').value
+  const col = CRM_COLS.find(c => c.id === colId)
+  const badge = $('lead-etapa-badge')
+  if (col) {
+    badge.textContent = col.label
+    badge.style.background = col.cor + '22'
+    badge.style.color = col.cor
+    badge.style.borderColor = col.cor + '33'
+    badge.style.border = '1px solid'
+  } else {
+    badge.textContent = '—'
+    badge.style.background = ''
+    badge.style.color = ''
+  }
+}
+
+function atualizarVisibilidadeMotivo() {
+  const status = $('lead-status-venda').value
+  $('lead-motivo-wrap').style.display = status === 'perdido' ? 'block' : 'none'
+}
+
+function atualizarBotoesContato() {
+  const tel = ($('lead-telefone').value || '').replace(/\D/g, '')
+  const corretor_numero = ($('lead-corretor').value || '').split(',')[1] || ''
+  const wa_numero = corretor_numero || tel
+  $('lead-whatsapp-btn').href = wa_numero ? `https://wa.me/55${wa_numero}` : '#'
+  $('lead-tel-btn').href = tel ? `tel:${tel}` : '#'
+  atualizarInfoBar()
+}
+
+async function salvarLead() {
+  const nome = $('lead-nome').value.trim()
+  if (!nome) { $('lead-nome').focus(); return }
+
+  const corretorVal = $('lead-corretor').value.split(',')
+  const payload = {
+    nome,
+    telefone: $('lead-telefone').value.trim(),
+    email: $('lead-email').value.trim(),
+    coluna: $('lead-coluna').value || 'novo',
+    corretor: corretorVal[0] || '',
+    corretor_numero: corretorVal[1] || '',
+    produto_negociacao: $('lead-produto-negociacao').value.trim(),
+    produto_origem: $('lead-produto-origem').value.trim(),
+    campanha_origem: $('lead-campanha-origem').value.trim(),
+    valor_negociacao: $('lead-valor').value.trim(),
+    status_venda: $('lead-status-venda').value || '',
+    motivo_perda: $('lead-motivo-perda').value.trim(),
+    data_cadastro: $('lead-data-cadastro').value ? new Date($('lead-data-cadastro').value).toISOString() : new Date().toISOString(),
+    data_ultimo_contato: $('lead-data-ultimo-contato').value || null,
+    documentos: $('lead-documentos').value.trim(),
+    anotacoes: $('lead-anotacoes').value.trim(),
+  }
+
+  const r = await api(`/crm/leads/${leadEditId}`, { method: 'PUT', body: JSON.stringify(payload) })
+  if (!r.ok) { const d = await r.json(); alert(d.erro || 'Erro ao salvar'); return }
+
+  const updated = await r.json()
+  const idx = crmCards.findIndex(c => c.id === leadEditId)
+  if (idx !== -1) crmCards[idx] = updated
+
+  fecharLeadModal()
+  renderizarKanban()
+  renderizarClientes()
 }
 
 // ── Trocar senha ──────────────────────────────────
@@ -811,3 +1117,38 @@ async function trocarSenha() {
   $('cfg-senha-atual').value = ''; $('cfg-nova-senha').value = ''; $('cfg-confirmar-senha').value = ''
   mostrarErro('ok-cfg', 'Senha alterada com sucesso!')
 }
+
+// ── Lead panel resize ─────────────────────────────
+
+;(function() {
+  let resizing = false, startX = 0, startW = 0
+  document.addEventListener('mousedown', e => {
+    const handle = e.target.closest('#lead-resize-handle')
+    if (!handle) return
+    const panel = $('lead-panel')
+    if (!panel) return
+    resizing = true
+    startX = e.clientX
+    startW = panel.offsetWidth
+    handle.classList.add('dragging')
+    document.body.style.cursor = 'ew-resize'
+    document.body.style.userSelect = 'none'
+    e.preventDefault()
+  })
+  document.addEventListener('mousemove', e => {
+    if (!resizing) return
+    const panel = $('lead-panel')
+    if (!panel) return
+    const delta = startX - e.clientX
+    const newW = Math.min(860, Math.max(320, startW + delta))
+    panel.style.width = newW + 'px'
+  })
+  document.addEventListener('mouseup', () => {
+    if (!resizing) return
+    resizing = false
+    const handle = $('lead-resize-handle')
+    if (handle) handle.classList.remove('dragging')
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  })
+})()

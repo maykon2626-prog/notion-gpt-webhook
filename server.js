@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const path = require('path')
@@ -12,6 +13,7 @@ app.use('/analytics', require('./routes/analytics'))
 app.use('/gerar-faq', require('./routes/faq'))
 app.use('/auth', require('./routes/auth').router)
 app.use('/usuarios', require('./routes/usuarios'))
+app.use('/crm', require('./routes/crm'))
 app.use('/bellinha', require('./routes/bellinha'))
 
 app.get('/dashboard', (req, res) => {
