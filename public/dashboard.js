@@ -24,56 +24,46 @@ function api(path, opts = {}) {
 
 // ── Sidebar ───────────────────────────────────────
 
-if (localStorage.getItem('sidebar-collapsed') === 'true') {
-  document.body.classList.add('sidebar-collapsed')
+// ── Top Navigation ────────────────────────────────
+
+function toggleTopnavDropdown(id) {
+  const item = document.getElementById('tnav-item-' + id)
+  if (!item) return
+  const isOpen = item.classList.contains('open')
+  // fecha todos
+  document.querySelectorAll('.topnav-item.open').forEach(el => el.classList.remove('open'))
+  if (!isOpen) item.classList.add('open')
 }
 
-function toggleSubmenu(id) {
-  const sub = document.getElementById('submenu-' + id)
-  const parent = sub?.previousElementSibling
-  if (!sub) return
-  // Fecha outros submenus abertos
-  document.querySelectorAll('.submenu.open').forEach(el => {
-    if (el !== sub) {
-      el.classList.remove('open')
-      el.previousElementSibling?.classList.remove('open')
-    }
-  })
-  const open = sub.classList.toggle('open')
-  if (parent) parent.classList.toggle('open', open)
+function fecharTopnavDropdowns() {
+  document.querySelectorAll('.topnav-item.open').forEach(el => el.classList.remove('open'))
 }
 
-function toggleSidebar() {
-  if (window.innerWidth <= 768) {
-    fecharSidebar()
-  } else {
-    const collapsed = document.body.classList.toggle('sidebar-collapsed')
-    localStorage.setItem('sidebar-collapsed', collapsed)
+function toggleTopnavMobile() {
+  const menu = $('topnav-menu')
+  const overlay = $('topnav-overlay')
+  const open = menu.classList.toggle('mobile-open')
+  overlay.classList.toggle('open', open)
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.topnav-item') && !e.target.closest('#topnav-hamburger')) {
+    fecharTopnavDropdowns()
   }
-}
-
-function abrirSidebar() {
-  $('sidebar').classList.add('open')
-  $('sidebar-overlay').classList.add('open')
-}
-
-function fecharSidebar() {
-  $('sidebar').classList.remove('open')
-  $('sidebar-overlay').classList.remove('open')
-}
+  if (!e.target.closest('#topnav') && !e.target.closest('#topnav-overlay')) {
+    const menu = $('topnav-menu')
+    const overlay = $('topnav-overlay')
+    if (menu) menu.classList.remove('mobile-open')
+    if (overlay) overlay.classList.remove('open')
+  }
+})
 
 // ── Navegação ─────────────────────────────────────
 
 function navegarPara(pagina) {
-  // sidebar menu
-  document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'))
-  const sidebarItem = document.querySelector(`[data-pagina="${pagina}"]`)
-  if (sidebarItem) sidebarItem.classList.add('active')
-
-  // bottom nav
-  document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'))
-  const bottomItem = document.querySelector(`.bottom-nav-item[data-pagina="${pagina}"]`)
-  if (bottomItem) bottomItem.classList.add('active')
+  // topnav active state
+  document.querySelectorAll('.topnav-item[data-pagina], .topnav-dropdown li[data-pagina]').forEach(el => el.classList.remove('active'))
+  document.querySelectorAll(`[data-pagina="${pagina}"]`).forEach(el => el.classList.add('active'))
 
   // páginas
   document.querySelectorAll('#conteudo > div[id^="pagina-"]').forEach(el => el.style.display = 'none')
@@ -86,7 +76,13 @@ function navegarPara(pagina) {
   if (pagina === 'usuarios-corretores') carregarCorretores()
   if (pagina === 'bellinha-instrucoes') carregarInstrucoes()
   if (pagina === 'bellinha-treinamento') carregarDocs()
-  if (window.innerWidth <= 768) fecharSidebar()
+
+  // fecha dropdown e menu mobile
+  fecharTopnavDropdowns()
+  const menu = $('topnav-menu')
+  const overlay = $('topnav-overlay')
+  if (menu) menu.classList.remove('mobile-open')
+  if (overlay) overlay.classList.remove('open')
 }
 
 // ── Login ─────────────────────────────────────────
