@@ -165,8 +165,16 @@ router.post('/', async (req, res) => {
             const produto = await resolverProduto(textoPuro, candidatos)
             await supabase.from('conversas').update({ pendente_produto: null }).eq('numero', numero)
             const contexto = await buscarSupabase(`${produto} ${pergunta_original}`)
+            const historicoParaModelo = mensagens.slice(-LIMITE_MENSAGENS)
+            const resposta = await perguntarClaude({
+                nome,
+                tipo,
+                resumo,
+                historico: historicoParaModelo,
+                contexto,
+                pergunta: pergunta_original
+            })
             mensagens.push({ role: 'user', content: pergunta_original })
-            const resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, pergunta_original)
             mensagens.push({ role: 'assistant', content: resposta })
             if (mensagens.length >= LIMITE_MENSAGENS) { resumo = await gerarResumo(nome, resumo, mensagens); mensagens = [] }
             await salvarConversa(numero, nome, tipo, resumo, mensagens, ativo)
@@ -190,10 +198,16 @@ router.post('/', async (req, res) => {
 
         const contexto = await buscarSupabase(deteccao.produto ? `${deteccao.produto} ${textoPuro}` : textoPuro)
         console.log('Contexto tamanho:', contexto.length)
-
-        mensagens.push({ role: 'user', content: textoPuro })
-
-        let resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contexto, textoPuro, imagemBase64)
+        const historicoParaModelo = mensagens.slice(-LIMITE_MENSAGENS)
+        let resposta = await perguntarClaude({
+            nome,
+            tipo,
+            resumo,
+            historico: historicoParaModelo,
+            contexto,
+            pergunta: textoPuro,
+            imagemBase64
+        })
 
         const respostaInsuficiente = /não tenho esse dado|não encontrei|sem (contexto|informaç)/i.test(resposta)
         if (respostaInsuficiente) {
@@ -201,10 +215,19 @@ router.post('/', async (req, res) => {
             const contextoExtra = await buscarSupabase(textoPuro, 8)
             if (contextoExtra && contextoExtra.length > contexto.length) {
                 console.log('Tentando com contexto expandido...')
-                resposta = await perguntarClaude(nome, resumo, mensagens.slice(-30), contextoExtra, textoPuro, imagemBase64)
+                resposta = await perguntarClaude({
+                    nome,
+                    tipo,
+                    resumo,
+                    historico: historicoParaModelo,
+                    contexto: contextoExtra,
+                    pergunta: textoPuro,
+                    imagemBase64
+                })
             }
         }
 
+        mensagens.push({ role: 'user', content: textoPuro })
         mensagens.push({ role: 'assistant', content: resposta })
 
         if (mensagens.length >= LIMITE_MENSAGENS) {

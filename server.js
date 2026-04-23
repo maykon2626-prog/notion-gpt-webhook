@@ -28,7 +28,7 @@ app.post('/perguntar', async (req, res) => {
         const { buscarSupabase } = require('./lib/rag')
         const { perguntarClaude } = require('./lib/claude')
         const contexto = await buscarSupabase(pergunta)
-        const resposta = await perguntarClaude('', '', [], contexto, pergunta)
+        const resposta = await perguntarClaude({ contexto, pergunta })
         return res.json({ resposta })
     } catch (err) {
         return res.status(500).json({ erro: err.message })
